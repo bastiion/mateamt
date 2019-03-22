@@ -1,0 +1,6 @@
+*.swp
+dist-newstile/
+*.hp
+*.ps
+*.pdf
+*.prof
