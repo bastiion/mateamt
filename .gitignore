@@ -1,6 +1,7 @@
 *.swp
-dist-newstile/
+dist-newstyle/
 *.hp
 *.ps
 *.pdf
 *.prof
+.ghc*

@@ -17,8 +17,22 @@ extra-source-files:  CHANGELOG.md
 
 executable mateamt
   main-is:             Main.hs
-  -- other-modules:
+  other-modules:       API
+                     , Model
+                     , Model.User
+                     , Model.Beverage
+                     , Types
   -- other-extensions:
   build-depends:       base ^>=4.12.0.0
+                     , servant
+                     , servant-server
+                     , opaleye
+                     , aeson
+                     , text
+                     , time
+                     , product-profunctors
+                     , postgresql-simple
+                     , warp
+                     , http-api-data
   hs-source-dirs:      src
   default-language:    Haskell2010
