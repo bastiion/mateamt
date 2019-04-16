@@ -26,6 +26,7 @@ main :: IO ()
 main = do
   conn <- connectPostgreSQL
     "host='localhost' port=5432 dbname='mateamt' user='mateamt' password='mateamt'"
+  execute_ conn initUser
   run 3000 (app conn)
 
 app :: Connection -> Application

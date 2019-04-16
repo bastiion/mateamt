@@ -62,6 +62,9 @@ instance ToJSON UserSubmit where
 
 instance FromJSON UserSubmit
 
+initUser :: PGS.Query
+initUser = "create table if not exists \"user\" (id serial, ident varchar(128) not null, balance integer not null, time_stamp date not null, email varchar(128), avatar integer, pin varchar(128))"
+
 userTable :: Table
   ( Maybe (Field SqlInt4)
   , Field SqlText
