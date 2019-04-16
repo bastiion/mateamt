@@ -29,6 +29,7 @@ main = do
   conn <- connectPostgreSQL
     "host='localhost' port=5432 dbname='mateamt' user='mateamt' password='mateamt'"
   execute_ conn initUser
+  execute_ conn initBeverage
   withStdoutLogger $ \log -> do
     let settings = setPort 3000 $ setLogger log defaultSettings
     runSettings settings (app conn)
