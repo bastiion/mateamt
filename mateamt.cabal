@@ -33,6 +33,8 @@ executable mateamt
                      , product-profunctors
                      , postgresql-simple
                      , warp
+                     , wai
+                     , wai-logger
                      , http-api-data
   hs-source-dirs:      src
   default-language:    Haskell2010

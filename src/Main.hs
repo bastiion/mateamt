@@ -7,6 +7,8 @@ import Data.Time.Clock
 
 import Database.PostgreSQL.Simple
 
+import Network.Wai
+import Network.Wai.Logger
 import Network.Wai.Handler.Warp
 
 import Opaleye
@@ -27,7 +29,9 @@ main = do
   conn <- connectPostgreSQL
     "host='localhost' port=5432 dbname='mateamt' user='mateamt' password='mateamt'"
   execute_ conn initUser
-  run 3000 (app conn)
+  withStdoutLogger $ \log -> do
+    let settings = setPort 3000 $ setLogger log defaultSettings
+    runSettings settings (app conn)
 
 app :: Connection -> Application
 app conn = serve userApi (users conn)
