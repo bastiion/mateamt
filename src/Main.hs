@@ -37,7 +37,8 @@ userApi = Proxy
 users :: Connection -> Server UserAPI
 users conn =
   userList :<|>
-  userNew
+  userNew :<|>
+  userUpdate
   where
     userList :: Maybe Refine -> Handler [User]
     userList ref = liftIO $ userSelect conn ref
@@ -45,3 +46,7 @@ users conn =
     userNew  us = liftIO $ do
       now <- getCurrentTime
       head <$> runInsert_ conn (insertUser us (utctDay now))
+    userUpdate :: (Int, UserSubmit) -> Handler ()
+    userUpdate (id, us) = liftIO $ do
+      now <- getCurrentTime
+      void $ runUpdate_ conn (updateUser id us (utctDay now))

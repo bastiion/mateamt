@@ -38,7 +38,15 @@ data User = User
     deriving (Generic, Show)
 
 instance ToJSON User where
-    toEncoding = genericToEncoding defaultOptions
+  toEncoding (User id ident balance ts email avatar _) =
+    pairs
+      (  "userId" .= id
+      <> "userIdent" .= ident
+      <> "userBalance" .= balance
+      <> "userTimeStamp" .= ts
+      <> "userEmail" .= email
+      <> "userAvatar" .= avatar
+      )
 
 instance FromJSON User
 
@@ -126,4 +134,21 @@ insertUser us now = Insert
     ]
   , iReturning = rReturning (\(id, _, _, _, _, _, _) -> id)
   , iOnConflict = Nothing
-}
+  }
+
+updateUser :: Int -> UserSubmit -> Day -> Update Int64
+updateUser id us now = Update
+  { uTable = userTable
+  , uUpdateWith = updateEasy (\(id_, _, i3, _, _, i6, _) ->
+      ( id_
+      , C.constant (userSubmitIdent us)
+      , i3
+      , C.constant (now)
+      , C.constant (userSubmitEmail us)
+      , i6
+      , C.constant (userSubmitPin us)
+      )
+    )
+  , uWhere = (\(i1, _, _, _, _, _, _) -> i1 .== C.constant id)
+  , uReturning = rCount
+  }

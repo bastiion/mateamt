@@ -21,9 +21,9 @@ import Model as M
 
 import Types
 
-type UserAPI = "user" :>
-  ( "list" :> QueryParam "refine" Refine :> Get '[JSON] [User]
-  :<|> "new" :> ReqBody '[JSON] UserSubmit :> Post '[JSON] Int
-  )
-
-data SortBy = Name
+type UserAPI =
+  "user" :>
+    ( "list" :> QueryParam "refine" Refine :> Get '[JSON] [User]
+    :<|> "new" :> ReqBody '[JSON] UserSubmit :> Post '[JSON] Int
+    :<|> "update" :> ReqBody '[JSON] (Int, UserSubmit) :> Post '[JSON] ()
+    )
