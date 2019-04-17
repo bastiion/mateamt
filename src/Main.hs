@@ -1,7 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeFamilies #-}
 module Main where
 
 import Servant
+import Servant.Server.Experimental.Auth
 
 import Data.Time.Clock
 
@@ -35,10 +39,25 @@ main = do
     runSettings settings (app conn)
 
 app :: Connection -> Application
-app conn = serve userApi (users conn)
+app conn = serveWithContext userApi genAuthServerContext (users conn)
 
 userApi :: Proxy UserAPI
 userApi = Proxy
+
+genAuthServerContext :: Context (AuthHandler Request Bool ': '[])
+genAuthServerContext = authHandler Servant.:. EmptyContext
+
+type instance AuthServerData (AuthProtect "header-auth") = Bool
+
+authHandler :: AuthHandler Request Bool
+authHandler = mkAuthHandler handler
+  where
+    handler req = do
+      let headers = requestHeaders req
+          res = case lookup "Authorization" headers of
+            Just _ -> True
+            _      -> False
+      return res
 
 users :: Connection -> Server UserAPI
 users conn =
@@ -46,8 +65,8 @@ users conn =
   userNew :<|>
   userUpdate
   where
-    userList :: Maybe Refine -> Handler [User]
-    userList ref = liftIO $ userSelect conn ref
+    userList :: Maybe Refine -> Bool -> Handler [User]
+    userList ref sw = liftIO $ userSelect conn ref sw
     userNew :: UserSubmit -> Handler Int
     userNew  us = liftIO $ do
       now <- getCurrentTime

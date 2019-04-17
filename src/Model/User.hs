@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 module Model.User where
 
 import Data.Text as T
@@ -24,18 +25,24 @@ import qualified Opaleye.Constant as C
 
 -- internal imports
 
-import Types
+import Types.Refine
 
-data User = User
-  { userId        :: Int
-  , userIdent     :: T.Text
-  , userBalance   :: Int
-  , userTimeStamp :: Day
-  , userEmail     :: Maybe T.Text
-  , userAvatar    :: Maybe Int
-  , userPin       :: Maybe T.Text
-  }
-    deriving (Generic, Show)
+data User
+  = User
+    { userId        :: Int
+    , userIdent     :: T.Text
+    , userBalance   :: Int
+    , userTimeStamp :: Day
+    , userEmail     :: Maybe T.Text
+    , userAvatar    :: Maybe Int
+    , userPin       :: Maybe T.Text
+    }
+  | QueryUser
+    { userId        :: Int
+    , userIdent     :: T.Text
+    , userAvatar    :: Maybe Int
+    }
+  deriving (Generic, Show)
 
 instance ToJSON User where
   toEncoding (User id ident balance ts email avatar _) =
@@ -45,6 +52,12 @@ instance ToJSON User where
       <> "userBalance" .= balance
       <> "userTimeStamp" .= ts
       <> "userEmail" .= email
+      <> "userAvatar" .= avatar
+      )
+  toEncoding (QueryUser id ident avatar) =
+    pairs
+      (  "userId" .= id
+      <> "userIdent" .= ident
       <> "userAvatar" .= avatar
       )
 
@@ -97,21 +110,11 @@ userTable = table "user" (
 userSelect
   :: PGS.Connection
   -> Maybe Refine
+  -> Bool
   -> IO [User]
-userSelect conn ref = do
+userSelect conn ref sw = do
   today <- utctDay <$> getCurrentTime
-  (mapM
-    (\(i1, i2, i3, i4, i5, i6, i7) -> return $
-      User
-        i1
-        i2
-        i3
-        i4
-        i5
-        i6
-        i7
-      )
-    ) =<< runSelect conn (case ref of
+  users <- runSelect conn (case ref of
       Nothing -> keepWhen (\(_, _, _, ts, _, _, _) ->
         ts .>= C.constant (addDays (-30) today)
         ) <<< queryTable userTable
@@ -119,7 +122,14 @@ userSelect conn ref = do
       Just Old -> keepWhen (\(_, _, _, ts, _, _, _) ->
         ts .<= C.constant (addDays (-30) today)
         ) <<< queryTable userTable
+      ) :: IO [(Int, Text, Int, Day, Maybe Text, Maybe Int, Maybe Text)]
+  mapM
+    (\(i1, i2, i3, i4, i5, i6, i7) -> return $
+      if sw
+      then User i1 i2 i3 i4 i5 i6 i7
+      else QueryUser i1 i2 i6
       )
+    users
 
 insertUser :: UserSubmit -> Day -> Insert [Int]
 insertUser us now = Insert

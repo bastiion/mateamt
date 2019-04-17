@@ -22,6 +22,8 @@ executable mateamt
                      , Model.User
                      , Model.Beverage
                      , Types
+                     , Types.Refine
+                     , Types.Auth
   -- other-extensions:
   build-depends:       base ^>=4.12.0.0
                      , servant
@@ -36,5 +38,6 @@ executable mateamt
                      , wai
                      , wai-logger
                      , http-api-data
+                     , bytestring
   hs-source-dirs:      src
   default-language:    Haskell2010
