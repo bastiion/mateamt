@@ -39,5 +39,6 @@ executable mateamt
                      , wai-logger
                      , http-api-data
                      , bytestring
+                     , base16-bytestring
   hs-source-dirs:      src
   default-language:    Haskell2010

@@ -3,16 +3,18 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 module Model.User where
 
-import Data.Text as T
+import Data.Text as T hiding (head)
 import Data.Time.Calendar
 import Data.Time.Clock
-import Data.Profunctor.Product (p7)
+import Data.Profunctor.Product (p9)
 
 import Data.Aeson
 
 import Data.Int (Int64)
 
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, fromMaybe)
+
+import Data.ByteString hiding (head)
 
 import qualified Database.PostgreSQL.Simple as PGS
 
@@ -26,6 +28,7 @@ import qualified Opaleye.Constant as C
 -- internal imports
 
 import Types.Refine
+import Types.Auth
 
 data User
   = User
@@ -35,7 +38,9 @@ data User
     , userTimeStamp :: Day
     , userEmail     :: Maybe T.Text
     , userAvatar    :: Maybe Int
-    , userPin       :: Maybe T.Text
+    , userSalt      :: AuthSalt
+    , userHash      :: Maybe AuthHash
+    , userAlgo      :: Maybe Int
     }
   | QueryUser
     { userId        :: Int
@@ -45,7 +50,7 @@ data User
   deriving (Generic, Show)
 
 instance ToJSON User where
-  toEncoding (User id ident balance ts email avatar _) =
+  toEncoding (User id ident balance ts email avatar _ _ _) =
     pairs
       (  "userId" .= id
       <> "userIdent" .= ident
@@ -66,7 +71,7 @@ instance FromJSON User
 data UserSubmit = UserSubmit
   { userSubmitIdent :: T.Text
   , userSubmitEmail :: Maybe T.Text
-  , userSubmitPin   :: Maybe T.Text
+  --, userSubmitPin   :: Maybe T.Text
   }
   deriving (Generic, Show)
 
@@ -76,7 +81,7 @@ instance ToJSON UserSubmit where
 instance FromJSON UserSubmit
 
 initUser :: PGS.Query
-initUser = "create table if not exists \"user\" (id serial primary key, ident varchar(128) not null, balance integer not null, time_stamp date not null, email varchar(128), avatar integer, pin varchar(128))"
+initUser = "create table if not exists \"user\" (id serial primary key, ident varchar(128) not null, balance integer not null, time_stamp date not null, email varchar(128), avatar integer, salt bytea not null, hash bytea, algo integer)"
 
 userTable :: Table
   ( Maybe (Field SqlInt4)
@@ -85,7 +90,9 @@ userTable :: Table
   , Field SqlDate
   , FieldNullable SqlText
   , FieldNullable SqlInt4
-  , FieldNullable SqlText
+  , Field SqlBytea
+  , FieldNullable SqlBytea
+  , FieldNullable SqlInt4
   )
   ( Field SqlInt4
   , Field SqlText
@@ -93,17 +100,21 @@ userTable :: Table
   , Field SqlDate
   , FieldNullable SqlText
   , FieldNullable SqlInt4
-  , FieldNullable SqlText
+  , Field SqlBytea
+  , FieldNullable SqlBytea
+  , FieldNullable SqlInt4
   )
 userTable = table "user" (
-  p7
+  p9
     ( tableField "id"
     , tableField "ident"
     , tableField "balance"
     , tableField "time_stamp"
     , tableField "email"
     , tableField "avatar"
-    , tableField "pin"
+    , tableField "salt"
+    , tableField "hash"
+    , tableField "algo"
     )
   )
 
@@ -115,19 +126,55 @@ userSelect
 userSelect conn ref sw = do
   today <- utctDay <$> getCurrentTime
   users <- runSelect conn (case ref of
-      Nothing -> keepWhen (\(_, _, _, ts, _, _, _) ->
+      Nothing -> keepWhen (\(_, _, _, ts, _, _, _, _, _) ->
         ts .>= C.constant (addDays (-30) today)
         ) <<< queryTable userTable
       Just All -> selectTable userTable
-      Just Old -> keepWhen (\(_, _, _, ts, _, _, _) ->
+      Just Old -> keepWhen (\(_, _, _, ts, _, _, _, _, _) ->
         ts .<= C.constant (addDays (-30) today)
         ) <<< queryTable userTable
-      ) :: IO [(Int, Text, Int, Day, Maybe Text, Maybe Int, Maybe Text)]
+      ) :: IO
+          [ ( Int
+            , Text
+            , Int
+            , Day
+            , Maybe Text
+            , Maybe Int
+            , ByteString
+            , Maybe ByteString
+            , Maybe Int
+            )
+          ]
   mapM
-    (\(i1, i2, i3, i4, i5, i6, i7) -> return $
+    (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) -> return $
       if sw
-      then User i1 i2 i3 i4 i5 i6 i7
+      then User i1 i2 i3 i4 i5 i6 (AuthSalt i7) (AuthHash <$> i8) (toEnum <$> i9)
       else QueryUser i1 i2 i6
+      )
+    users
+
+getUserAuthInfo
+  :: PGS.Connection
+  -> Int
+  -> IO AuthInfo
+getUserAuthInfo conn id = do
+  users <- runSelect conn (
+    keepWhen (\(uid, _, _, _, _, _, _, _, _) ->
+      uid .== C.constant id) <<< queryTable userTable
+    ) :: IO
+        [ ( Int
+          , Text
+          , Int
+          , Day
+          , Maybe Text
+          , Maybe Int
+          , ByteString
+          , Maybe ByteString
+          , Maybe Int
+          )
+        ]
+  head <$> mapM (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) -> return $
+      AuthInfo (AuthSalt i7) (fromMaybe PBKDF2 $ (toEnum <$> i9))
       )
     users
 
@@ -142,26 +189,30 @@ insertUser us now = Insert
     , C.constant now
     , C.constant (userSubmitEmail us)
     , C.constant (Nothing :: Maybe Int)
-    , C.constant (userSubmitPin us)
+    , C.constant ("mocksalt" :: ByteString)
+    , C.constant (Nothing :: Maybe ByteString)
+    , C.constant (Nothing :: Maybe Int)
     )
     ]
-  , iReturning = rReturning (\(id, _, _, _, _, _, _) -> id)
+  , iReturning = rReturning (\(id, _, _, _, _, _, _, _, _) -> id)
   , iOnConflict = Nothing
   }
 
 updateUser :: Int -> UserSubmit -> Day -> Update Int64
 updateUser id us now = Update
   { uTable = userTable
-  , uUpdateWith = updateEasy (\(id_, _, i3, _, _, i6, _) ->
+  , uUpdateWith = updateEasy (\(id_, _, i3, _, _, i6, i7, i8, i9) ->
       ( id_
       , C.constant (userSubmitIdent us)
       , i3
       , C.constant (now)
       , C.constant (userSubmitEmail us)
       , i6
-      , C.constant (userSubmitPin us)
+      , i7
+      , i8
+      , i9
       )
     )
-  , uWhere = (\(i1, _, _, _, _, _, _) -> i1 .== C.constant id)
+  , uWhere = (\(i1, _, _, _, _, _, _, _, _) -> i1 .== C.constant id)
   , uReturning = rCount
   }

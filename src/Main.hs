@@ -61,17 +61,29 @@ authHandler = mkAuthHandler handler
 
 users :: Connection -> Server UserAPI
 users conn =
-  userList :<|>
-  userNew :<|>
-  userUpdate
+  ( userList :<|>
+    userNew :<|>
+    userUpdate
+  ) :<|>
+  ( authGet :<|>
+    authSend
+  )
   where
     userList :: Maybe Refine -> Bool -> Handler [User]
     userList ref sw = liftIO $ userSelect conn ref sw
+
     userNew :: UserSubmit -> Handler Int
     userNew  us = liftIO $ do
       now <- getCurrentTime
       head <$> runInsert_ conn (insertUser us (utctDay now))
+
     userUpdate :: (Int, UserSubmit) -> Handler ()
     userUpdate (id, us) = liftIO $ do
       now <- getCurrentTime
       void $ runUpdate_ conn (updateUser id us (utctDay now))
+
+    authGet :: Int -> Handler AuthInfo
+    authGet = liftIO . getUserAuthInfo conn
+
+    authSend :: AuthRequest -> Handler AuthResult
+    authSend _ = pure $ Granted $ AuthToken "mockgrant"
