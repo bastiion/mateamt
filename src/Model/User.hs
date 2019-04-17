@@ -8,13 +8,11 @@ import Data.Time.Calendar
 import Data.Time.Clock
 import Data.Profunctor.Product (p9)
 
-import Data.Aeson
-
-import Data.Int (Int64)
-
-import Data.Maybe (fromJust, fromMaybe)
+import Data.Maybe (fromJust, isJust, fromMaybe)
 
 import Data.ByteString hiding (head)
+
+import Data.Int (Int64)
 
 import qualified Database.PostgreSQL.Simple as PGS
 
@@ -27,58 +25,9 @@ import qualified Opaleye.Constant as C
 
 -- internal imports
 
+import Types.User
 import Types.Refine
 import Types.Auth
-
-data User
-  = User
-    { userId        :: Int
-    , userIdent     :: T.Text
-    , userBalance   :: Int
-    , userTimeStamp :: Day
-    , userEmail     :: Maybe T.Text
-    , userAvatar    :: Maybe Int
-    , userSalt      :: AuthSalt
-    , userHash      :: Maybe AuthHash
-    , userAlgo      :: Maybe Int
-    }
-  | QueryUser
-    { userId        :: Int
-    , userIdent     :: T.Text
-    , userAvatar    :: Maybe Int
-    }
-  deriving (Generic, Show)
-
-instance ToJSON User where
-  toEncoding (User id ident balance ts email avatar _ _ _) =
-    pairs
-      (  "userId" .= id
-      <> "userIdent" .= ident
-      <> "userBalance" .= balance
-      <> "userTimeStamp" .= ts
-      <> "userEmail" .= email
-      <> "userAvatar" .= avatar
-      )
-  toEncoding (QueryUser id ident avatar) =
-    pairs
-      (  "userId" .= id
-      <> "userIdent" .= ident
-      <> "userAvatar" .= avatar
-      )
-
-instance FromJSON User
-
-data UserSubmit = UserSubmit
-  { userSubmitIdent :: T.Text
-  , userSubmitEmail :: Maybe T.Text
-  --, userSubmitPin   :: Maybe T.Text
-  }
-  deriving (Generic, Show)
-
-instance ToJSON UserSubmit where
-    toEncoding = genericToEncoding defaultOptions
-
-instance FromJSON UserSubmit
 
 initUser :: PGS.Query
 initUser = "create table if not exists \"user\" (id serial primary key, ident varchar(128) not null, balance integer not null, time_stamp date not null, email varchar(128), avatar integer, salt bytea not null, hash bytea, algo integer)"

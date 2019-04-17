@@ -15,26 +15,6 @@ import GHC.Generics
 
 import Opaleye as O
 
-data Beverage = Beverage
-  { beverageIdent          :: T.Text
-  , beveragePrice          :: Int
-  , beverageAmount         :: Int
-  , beverageVanish         :: Int
-  , beverageMl             :: Int
-  , beverageAvatar         :: Maybe Word
-  , beverageSupplier       :: Maybe Word
-  , beverageMaxAmount      :: Int
-  , beverageTotalBought    :: Int
-  , beverageAmonutPerCrate :: Int
-  , beveragePricePerCrate  :: Maybe Int
-  , beverageArtNr          :: Maybe T.Text
-  } deriving (Generic, Show)
-
-instance ToJSON Beverage where
-    toEncoding = genericToEncoding defaultOptions
-
-instance FromJSON Beverage
-
 initBeverage :: PGS.Query
 initBeverage = "create Table if not exists \"beverage\" (id serial primary key, ident varchar(128) not null, price integer not null, amount integer not null, vanish integer not null, ml integer not null, avatar integer, supplier integer, max_amount integer not null, total_bought integer not null, amount_per_crate integer not null, price_per_crate integer, art_nr varchar(128))"
 

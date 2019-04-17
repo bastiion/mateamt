@@ -22,8 +22,10 @@ executable mateamt
                      , Model.User
                      , Model.Beverage
                      , Types
-                     , Types.Refine
                      , Types.Auth
+                     , Types.Beverage
+                     , Types.Refine
+                     , Types.User
   -- other-extensions:
   build-depends:       base ^>=4.12.0.0
                      , servant
