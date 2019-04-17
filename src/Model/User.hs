@@ -174,7 +174,7 @@ getUserAuthInfo conn id = do
           )
         ]
   head <$> mapM (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) -> return $
-      AuthInfo (AuthSalt i7) (fromMaybe PBKDF2 $ (toEnum <$> i9))
+      AuthInfo (AuthSalt i7) (toEnum $ fromMaybe 0 i9)
       )
     users
 

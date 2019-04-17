@@ -25,12 +25,13 @@ instance FromJSON AuthInfo
 
 data AuthAlgorithm
   = PBKDF2
-    deriving (Show, Generic, Enum)
+    deriving (Show, Read, Generic, Enum)
 
 instance ToJSON AuthAlgorithm where
-  toEncoding = genericToEncoding defaultOptions
+  toJSON = toJSON . show
 
-instance FromJSON AuthAlgorithm
+instance FromJSON AuthAlgorithm where
+  parseJSON j = read <$> parseJSON j
 
 newtype AuthSalt = AuthSalt ByteString deriving (Show)
 
