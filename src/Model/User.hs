@@ -6,11 +6,13 @@ module Model.User where
 import Data.Text as T hiding (head)
 import Data.Time.Calendar
 import Data.Time.Clock
+
 import Data.Profunctor.Product (p9)
 
 import Data.Maybe (fromJust, isJust, fromMaybe)
 
 import Data.ByteString hiding (head)
+import Data.ByteString.Random
 
 import Data.Int (Int64)
 
@@ -30,7 +32,7 @@ import Types.Refine
 import Types.Auth
 
 initUser :: PGS.Query
-initUser = "create table if not exists \"user\" (id serial primary key, ident varchar(128) not null, balance integer not null, time_stamp date not null, email varchar(128), avatar integer, salt bytea not null, hash bytea, algo integer)"
+initUser = "create table if not exists \"user\" (user_id serial primary key, user_ident varchar(128) not null, user_balance integer not null, user_timestamp date not null, user_email varchar(128), user_avatar integer, user_salt bytea not null, user_hash bytea, user_algo integer)"
 
 userTable :: Table
   ( Maybe (Field SqlInt4)
@@ -55,15 +57,15 @@ userTable :: Table
   )
 userTable = table "user" (
   p9
-    ( tableField "id"
-    , tableField "ident"
-    , tableField "balance"
-    , tableField "time_stamp"
-    , tableField "email"
-    , tableField "avatar"
-    , tableField "salt"
-    , tableField "hash"
-    , tableField "algo"
+    ( tableField "user_id"
+    , tableField "user_ident"
+    , tableField "user_balance"
+    , tableField "user_timestamp"
+    , tableField "user_email"
+    , tableField "user_avatar"
+    , tableField "user_salt"
+    , tableField "user_hash"
+    , tableField "user_algo"
     )
   )
 
@@ -102,33 +104,8 @@ userSelect conn ref sw = do
       )
     users
 
-getUserAuthInfo
-  :: PGS.Connection
-  -> Int
-  -> IO AuthInfo
-getUserAuthInfo conn id = do
-  users <- runSelect conn (
-    keepWhen (\(uid, _, _, _, _, _, _, _, _) ->
-      uid .== C.constant id) <<< queryTable userTable
-    ) :: IO
-        [ ( Int
-          , Text
-          , Int
-          , Day
-          , Maybe Text
-          , Maybe Int
-          , ByteString
-          , Maybe ByteString
-          , Maybe Int
-          )
-        ]
-  head <$> mapM (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) -> return $
-      AuthInfo (AuthSalt i7) (toEnum $ fromMaybe 0 i9)
-      )
-    users
-
-insertUser :: UserSubmit -> Day -> Insert [Int]
-insertUser us now = Insert
+insertUser :: UserSubmit -> Day -> ByteString -> Insert [Int]
+insertUser us now randSalt = Insert
   { iTable = userTable
   , iRows  =
     [
@@ -138,7 +115,7 @@ insertUser us now = Insert
     , C.constant now
     , C.constant (userSubmitEmail us)
     , C.constant (Nothing :: Maybe Int)
-    , C.constant ("mocksalt" :: ByteString)
+    , C.constant randSalt
     , C.constant (Nothing :: Maybe ByteString)
     , C.constant (Nothing :: Maybe Int)
     )

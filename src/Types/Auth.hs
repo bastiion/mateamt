@@ -10,21 +10,33 @@ import Data.Aeson
 import Data.ByteString
 import qualified Data.ByteString.Base16 as B16
 
+import qualified Data.Set as S
+
+import Data.Time.Clock (UTCTime)
+
 import Data.Text.Encoding (encodeUtf8, decodeUtf8)
 
+import Data.StateVar
+
+import Data.IORef
+
+import Control.Monad.IO.Class (liftIO)
+
+-- internal imports
+
 data AuthInfo = AuthInfo
-  { authSalt :: AuthSalt
+  { authSalt      :: AuthSalt
   , authAlgorithm :: AuthAlgorithm
+  , authTicket    :: AuthTicket
   }
   deriving (Show, Generic)
 
 instance ToJSON AuthInfo where
-  toEncoding = genericToEncoding defaultOptions
 
 instance FromJSON AuthInfo
 
 data AuthAlgorithm
-  = PBKDF2
+  = SHA3_512
     deriving (Show, Read, Generic, Enum)
 
 instance ToJSON AuthAlgorithm where
@@ -32,6 +44,18 @@ instance ToJSON AuthAlgorithm where
 
 instance FromJSON AuthAlgorithm where
   parseJSON j = read <$> parseJSON j
+
+newtype AuthTicket = AuthTicket ByteString deriving (Show, Eq, Ord)
+
+instance ToJSON AuthTicket where
+  toJSON (AuthTicket bs) = (String . decodeUtf8 . B16.encode) bs
+
+instance FromJSON AuthTicket where
+  parseJSON = withText ""
+    (\t -> do
+      let enc = fst $ B16.decode $ encodeUtf8 t
+      return (AuthTicket enc)
+      )
 
 newtype AuthSalt = AuthSalt ByteString deriving (Show)
 
@@ -58,8 +82,8 @@ instance FromJSON AuthHash where
       )
 
 data AuthRequest = AuthRequest
-  { requestUser :: Int
-  , requestHash :: AuthHash
+  { authRequestTicket :: AuthTicket
+  , authRequestHash   :: AuthHash
   }
   deriving (Show, Generic)
 
@@ -70,15 +94,13 @@ instance FromJSON AuthRequest
 
 data AuthResult
   = Granted
-    { authToken :: AuthToken
+    { authToken :: Token
     }
   | Denied
     deriving (Show, Generic)
 
 instance ToJSON AuthResult where
   toEncoding = genericToEncoding defaultOptions
-
-instance FromJSON AuthResult
 
 newtype AuthToken = AuthToken ByteString deriving (Show)
 
@@ -91,3 +113,27 @@ instance FromJSON AuthToken where
       let enc = fst $ B16.decode $ encodeUtf8 t
       return (AuthToken enc)
       )
+
+data Token = Token
+  { tokenString :: ByteString
+  , tokenUser   :: Int
+  , tokenExpiry :: UTCTime
+  }
+  deriving (Generic, Show)
+
+instance ToJSON Token where
+  toJSON (Token s _ _) = (String . decodeUtf8 . B16.encode) s
+
+type TicketStore = StateVar (S.Set Ticket)
+
+{-# NOINLINE ticketStore #-}
+
+data Ticket = Ticket
+  { ticketId     :: AuthTicket
+  , ticketUser   :: Int
+  , ticketExpiry :: UTCTime
+  }
+  deriving (Ord)
+
+instance Eq Ticket where
+  (Ticket i1 _ _) == (Ticket i2 _ _) = i1 == i2

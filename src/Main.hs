@@ -9,6 +9,8 @@ import Servant.Server.Experimental.Auth
 
 import Data.Time.Clock
 
+import Data.ByteString.Random
+
 import Database.PostgreSQL.Simple
 
 import Network.Wai
@@ -34,6 +36,7 @@ main = do
     "host='localhost' port=5432 dbname='mateamt' user='mateamt' password='mateamt'"
   execute_ conn initUser
   execute_ conn initBeverage
+  execute_ conn initToken
   withStdoutLogger $ \log -> do
     let settings = setPort 3000 $ setLogger log defaultSettings
     runSettings settings (app conn)
@@ -75,7 +78,8 @@ users conn =
     userNew :: UserSubmit -> Handler Int
     userNew  us = liftIO $ do
       now <- getCurrentTime
-      head <$> runInsert_ conn (insertUser us (utctDay now))
+      randSalt <- random 8
+      head <$> runInsert_ conn (insertUser us (utctDay now) randSalt)
 
     userUpdate :: (Int, UserSubmit) -> Handler ()
     userUpdate (id, us) = liftIO $ do
@@ -86,4 +90,4 @@ users conn =
     authGet = liftIO . getUserAuthInfo conn
 
     authSend :: AuthRequest -> Handler AuthResult
-    authSend _ = pure $ Granted $ AuthToken "mockgrant"
+    authSend _ = liftIO $ Granted <$> AuthToken <$> random 8
