@@ -16,11 +16,11 @@ import Data.Time.Clock (UTCTime)
 
 import Data.Text.Encoding (encodeUtf8, decodeUtf8)
 
-import Data.StateVar
-
 import Data.IORef
 
 import Control.Monad.IO.Class (liftIO)
+
+import Control.Concurrent.STM.TVar (TVar)
 
 -- internal imports
 
@@ -124,9 +124,7 @@ data Token = Token
 instance ToJSON Token where
   toJSON (Token s _ _) = (String . decodeUtf8 . B16.encode) s
 
-type TicketStore = StateVar (S.Set Ticket)
-
-{-# NOINLINE ticketStore #-}
+type TicketStore = TVar (S.Set Ticket)
 
 data Ticket = Ticket
   { ticketId     :: AuthTicket

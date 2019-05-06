@@ -5,9 +5,9 @@ let
   inherit (nixpkgs) pkgs;
 
   f = { mkDerivation, aeson, base, base16-bytestring, bytestring
-      , http-api-data, opaleye, postgresql-simple, product-profunctors
-      , random-bytestring, servant, servant-server, stdenv, text, time
-      , wai, wai-logger, warp
+      , containers, http-api-data, mtl, opaleye, postgresql-simple
+      , product-profunctors, random-bytestring, servant, servant-server
+      , stdenv, stm, text, time, wai, wai-logger, warp
       }:
       mkDerivation {
         pname = "mateamt";
@@ -16,10 +16,11 @@ let
         isLibrary = false;
         isExecutable = true;
         executableHaskellDepends = [
-          aeson base base16-bytestring bytestring http-api-data opaleye
-          postgresql-simple product-profunctors random-bytestring servant
-          servant-server text time wai wai-logger warp
+          aeson base base16-bytestring bytestring containers http-api-data
+          mtl opaleye postgresql-simple product-profunctors random-bytestring
+          servant servant-server stm text time wai wai-logger warp
         ];
+        jailbreak = true;
         description = "A whole new matemat";
         license = stdenv.lib.licenses.agpl3;
       };

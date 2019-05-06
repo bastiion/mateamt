@@ -5,4 +5,5 @@ module Types
 import Types.Auth as T
 import Types.Beverage as T
 import Types.Refine as T
+import Types.Reader as T
 import Types.User as T
