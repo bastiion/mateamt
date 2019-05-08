@@ -20,7 +20,6 @@ let
           mtl opaleye postgresql-simple product-profunctors random-bytestring
           servant servant-server stm text time wai wai-logger warp
         ];
-        jailbreak = true;
         description = "A whole new matemat";
         license = stdenv.lib.licenses.agpl3;
       };

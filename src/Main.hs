@@ -25,6 +25,8 @@ import Control.Monad.IO.Class (liftIO)
 
 import Control.Monad (void)
 
+import Control.Monad.Reader
+
 import Control.Concurrent.STM.TVar
 
 -- internal imports
@@ -53,7 +55,7 @@ main = do
 app :: ReadState -> Application
 -- app conn = serveWithContext userApi genAuthServerContext (users conn)
 app initState = serveWithContext userApi genAuthServerContext $
-  hoistServer (runReaderT initState) users
+  hoistServer userApi (`runReaderT` initState) users
 
 userApi :: Proxy UserAPI
 userApi = Proxy
@@ -74,7 +76,7 @@ authHandler = mkAuthHandler handler
       return res
 
 users :: ServerT UserAPI (ReaderT ReadState Handler)
-users conn =
+users =
   ( userList :<|>
     userNew :<|>
     userUpdate
@@ -83,22 +85,27 @@ users conn =
     authSend
   )
   where
-    userList :: Maybe Refine -> Bool -> Handler [User]
-    userList ref sw = liftIO $ userSelect conn ref sw
+    userList :: Maybe Refine -> Bool -> MateHandler [User]
+    userList ref sw = liftIO $ do
+      conn <- rsConnection <$> ask
+      userSelect conn ref sw
 
-    userNew :: UserSubmit -> Handler Int
+    userNew :: UserSubmit -> MateHandler Int
     userNew  us = liftIO $ do
       now <- getCurrentTime
       randSalt <- random 8
+      conn <- rsConnection <$> ask
       head <$> runInsert_ conn (insertUser us (utctDay now) randSalt)
 
-    userUpdate :: (Int, UserSubmit) -> Handler ()
+    userUpdate :: (Int, UserSubmit) -> MateHandler ()
     userUpdate (id, us) = liftIO $ do
       now <- getCurrentTime
+      conn <- rsConnection <$> ask
       void $ runUpdate_ conn (updateUser id us (utctDay now))
 
-    authGet :: Int -> Handler AuthInfo
-    authGet = liftIO . getUserAuthInfo conn
+    authGet :: Int -> MateHandler AuthInfo
+    authGet id =
+      getUserAuthInfo id
 
-    authSend :: AuthRequest -> Handler AuthResult
+    authSend :: AuthRequest -> MateHandler AuthResult
     authSend _ = liftIO $ Granted <$> AuthToken <$> random 8

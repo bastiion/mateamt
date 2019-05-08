@@ -35,7 +35,7 @@ executable mateamt
                      , opaleye
                      , aeson
                      , text
-                     , time ^>=1.9
+                     , time
                      , product-profunctors
                      , postgresql-simple
                      , warp
