@@ -54,11 +54,24 @@ main = do
 
 app :: ReadState -> Application
 -- app conn = serveWithContext userApi genAuthServerContext (users conn)
-app initState = serveWithContext userApi genAuthServerContext $
-  hoistServer userApi (`runReaderT` initState) users
+app initState = serve userApi $
+  hoistServerWithContext
+    userApi
+    authProxy
+    -- genAuthServerContext
+    (`runReaderT` initState)
+    users
+  -- hoistServerWithContext
+  --   userApi
+  --   genAuthServerContext
+  --   (`runReaderT` initState)
+  --   users
 
 userApi :: Proxy UserAPI
 userApi = Proxy
+
+authProxy :: Proxy (Context (AuthHandler Request Bool ': '[]))
+authProxy = Proxy
 
 genAuthServerContext :: Context (AuthHandler Request Bool ': '[])
 genAuthServerContext = authHandler Servant.:. EmptyContext
@@ -86,22 +99,22 @@ users =
   )
   where
     userList :: Maybe Refine -> Bool -> MateHandler [User]
-    userList ref sw = liftIO $ do
+    userList ref sw = do
       conn <- rsConnection <$> ask
       userSelect conn ref sw
 
     userNew :: UserSubmit -> MateHandler Int
-    userNew  us = liftIO $ do
-      now <- getCurrentTime
-      randSalt <- random 8
+    userNew  us = do
+      now <- liftIO $ getCurrentTime
+      randSalt <- liftIO $ random 8
       conn <- rsConnection <$> ask
-      head <$> runInsert_ conn (insertUser us (utctDay now) randSalt)
+      head <$> (liftIO $ runInsert_ conn (insertUser us (utctDay now) randSalt))
 
     userUpdate :: (Int, UserSubmit) -> MateHandler ()
-    userUpdate (id, us) = liftIO $ do
-      now <- getCurrentTime
+    userUpdate (id, us) = do
+      now <- liftIO $ getCurrentTime
       conn <- rsConnection <$> ask
-      void $ runUpdate_ conn (updateUser id us (utctDay now))
+      void $ liftIO $ runUpdate_ conn (updateUser id us (utctDay now))
 
     authGet :: Int -> MateHandler AuthInfo
     authGet id =

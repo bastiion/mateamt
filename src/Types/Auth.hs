@@ -94,7 +94,7 @@ instance FromJSON AuthRequest
 
 data AuthResult
   = Granted
-    { authToken :: Token
+    { authToken :: AuthToken
     }
   | Denied
     deriving (Show, Generic)

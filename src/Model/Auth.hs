@@ -6,6 +6,8 @@ import GHC.Generics
 
 import Control.Arrow ((<<<))
 
+import Control.Monad (void)
+
 import Control.Monad.IO.Class (liftIO)
 
 import Control.Monad.Reader (ask)
@@ -59,14 +61,13 @@ tokenTable = table "token" (
     )
 
 getUserAuthInfo
-  :: PGS.Connection
-  -> Int
+  :: Int
   -> MateHandler AuthInfo
-getUserAuthInfo id = do
+getUserAuthInfo ident = do
   conn <- rsConnection <$> ask
   users <- liftIO $ runSelect conn (
     keepWhen (\(uid, _, _, _, _, _, _, _, _) ->
-      uid .== C.constant id) <<< queryTable userTable
+      uid .== C.constant ident) <<< queryTable userTable
     ) :: MateHandler
         [ ( Int
           , Text
@@ -80,19 +81,19 @@ getUserAuthInfo id = do
           )
         ]
   head <$> mapM (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) ->
-      AuthInfo (AuthSalt i7) (toEnum $ fromMaybe 0 i9) <$> newTicket id
+      AuthInfo (AuthSalt i7) (toEnum $ fromMaybe 0 i9) <$> newTicket ident
       )
     users
 
-checkTicket
+generateToken
   :: Ticket
   -> AuthHash
-  -> MateHandler Token
-generateToken (Ticket _ id exp) hash = do
+  -> MateHandler AuthResult
+generateToken (Ticket _ ident exp) (AuthHash hash) = do
   conn <- rsConnection <$> ask
   users <- liftIO $ runSelect conn (
     keepWhen (\(uid, _, _, _, _, _, _, _, _) ->
-      uid .== C.cinstant id) <<< queryTable userTable
+      uid .== C.constant ident) <<< queryTable userTable
     ) :: MateHandler
         [ ( Int
           , Text
@@ -105,16 +106,42 @@ generateToken (Ticket _ id exp) hash = do
           , Maybe Int
           )
         ]
-  let userHash = head $ map (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) -> i8)
+  let userHash = head $ map (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) -> i8) users
+  if userHash == Nothing || userHash == Just hash
+  then do
+    token <- liftIO $ Token
+      <$> (random 23)
+      <*> (pure ident)
+      <*> (addUTCTime 23 <$> getCurrentTime)
+    void $ liftIO $ runInsert_ conn (insertToken token)
+    return $ Granted (AuthToken $ tokenString token)
+  else
+    return Denied
+
+insertToken
+  :: Token
+  -> Insert [ByteString]
+insertToken (Token tString tUser tExpiry) = Insert
+  { iTable = tokenTable
+  , iRows =
+    [
+    ( C.constant tString
+    , C.constant tUser
+    , C.constant tExpiry
+    )
+    ]
+  , iReturning = rReturning (\(ident, _, _) -> ident)
+  , iOnConflict = Nothing
+  }
 
 newTicket :: Int -> MateHandler AuthTicket
-newTicket id = do
+newTicket ident = do
   store <- rsTicketStore <$> ask
   rand <- liftIO $ random 23
   later <- liftIO $ (addUTCTime (23/60) <$> getCurrentTime)
   let ticket = Ticket
         { ticketId     = AuthTicket rand
-        , ticketUser   = id
+        , ticketUser   = ident
         , ticketExpiry = later
         }
   liftIO $ atomically $ modifyTVar store (\s -> S.insert ticket s)
@@ -124,8 +151,8 @@ processAuthRequest
   :: AuthRequest
   -> MateHandler AuthResult
 processAuthRequest (AuthRequest aticket hash) = do
-  store <- (liftIO . readTVarIO) <$> rsTicketStore <$> ask
+  store <- liftIO . readTVarIO =<< rsTicketStore <$> ask
   let mticket = S.filter (\st -> ticketId st == aticket) store
-  case toList mticket of
-    [ticket] -> checkTicket ticket hash
+  case S.toList mticket of
+    [ticket] -> generateToken ticket hash
     _        -> return Denied

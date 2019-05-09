@@ -12,7 +12,6 @@ import Data.Profunctor.Product (p9)
 import Data.Maybe (fromJust, isJust, fromMaybe)
 
 import Data.ByteString hiding (head)
--- import Data.ByteString.Random
 
 import Data.Int (Int64)
 
@@ -22,6 +21,8 @@ import GHC.Generics
 
 import Control.Arrow ((<<<))
 
+import Control.Monad.IO.Class (liftIO)
+
 import Opaleye as O
 import qualified Opaleye.Constant as C
 
@@ -30,6 +31,7 @@ import qualified Opaleye.Constant as C
 import Types.User
 import Types.Refine
 import Types.Auth
+import Types.Reader
 
 initUser :: PGS.Query
 initUser = "create table if not exists \"user\" (user_id serial primary key, user_ident varchar(128) not null, user_balance integer not null, user_timestamp date not null, user_email varchar(128), user_avatar integer, user_salt bytea not null, user_hash bytea, user_algo integer)"
@@ -73,10 +75,10 @@ userSelect
   :: PGS.Connection
   -> Maybe Refine
   -> Bool
-  -> IO [User]
+  -> MateHandler [User]
 userSelect conn ref sw = do
-  today <- utctDay <$> getCurrentTime
-  users <- runSelect conn (case ref of
+  today <- utctDay <$> (liftIO $ getCurrentTime)
+  users <- liftIO $ runSelect conn (case ref of
       Nothing -> keepWhen (\(_, _, _, ts, _, _, _, _, _) ->
         ts .>= C.constant (addDays (-30) today)
         ) <<< queryTable userTable
@@ -84,7 +86,7 @@ userSelect conn ref sw = do
       Just Old -> keepWhen (\(_, _, _, ts, _, _, _, _, _) ->
         ts .<= C.constant (addDays (-30) today)
         ) <<< queryTable userTable
-      ) :: IO
+      ) :: MateHandler
           [ ( Int
             , Text
             , Int
@@ -131,7 +133,7 @@ updateUser id us now = Update
       ( id_
       , C.constant (userSubmitIdent us)
       , i3
-      , C.constant (now)
+      , C.constant now
       , C.constant (userSubmitEmail us)
       , i6
       , i7
