@@ -6,3 +6,4 @@ dist/
 *.pdf
 *.prof
 .ghc*
+cabal.project.*
