@@ -54,11 +54,10 @@ main = do
 
 app :: ReadState -> Application
 -- app conn = serveWithContext userApi genAuthServerContext (users conn)
-app initState = serve userApi $
+app initState = serveWithContext userApi genAuthServerContext $
   hoistServerWithContext
     userApi
     authProxy
-    -- genAuthServerContext
     (`runReaderT` initState)
     users
   -- hoistServerWithContext
@@ -70,10 +69,10 @@ app initState = serve userApi $
 userApi :: Proxy UserAPI
 userApi = Proxy
 
-authProxy :: Proxy (Context (AuthHandler Request Bool ': '[]))
+authProxy :: Proxy '[ AuthHandler Request Bool ]
 authProxy = Proxy
 
-genAuthServerContext :: Context (AuthHandler Request Bool ': '[])
+genAuthServerContext :: Context '[ AuthHandler Request Bool ]
 genAuthServerContext = authHandler Servant.:. EmptyContext
 
 type instance AuthServerData (AuthProtect "header-auth") = Bool
@@ -104,7 +103,7 @@ users =
       userSelect conn ref sw
 
     userNew :: UserSubmit -> MateHandler Int
-    userNew  us = do
+    userNew us = do
       now <- liftIO $ getCurrentTime
       randSalt <- liftIO $ random 8
       conn <- rsConnection <$> ask
@@ -121,4 +120,4 @@ users =
       getUserAuthInfo id
 
     authSend :: AuthRequest -> MateHandler AuthResult
-    authSend _ = liftIO $ Granted <$> AuthToken <$> random 8
+    authSend = processAuthRequest

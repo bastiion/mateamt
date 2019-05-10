@@ -112,7 +112,7 @@ generateToken (Ticket _ ident exp) (AuthHash hash) = do
     token <- liftIO $ Token
       <$> (random 23)
       <*> (pure ident)
-      <*> (addUTCTime 23 <$> getCurrentTime)
+      <*> (addUTCTime (23*60) <$> getCurrentTime)
     void $ liftIO $ runInsert_ conn (insertToken token)
     return $ Granted (AuthToken $ tokenString token)
   else
@@ -138,7 +138,7 @@ newTicket :: Int -> MateHandler AuthTicket
 newTicket ident = do
   store <- rsTicketStore <$> ask
   rand <- liftIO $ random 23
-  later <- liftIO $ (addUTCTime (23/60) <$> getCurrentTime)
+  later <- liftIO $ (addUTCTime 23 <$> getCurrentTime)
   let ticket = Ticket
         { ticketId     = AuthTicket rand
         , ticketUser   = ident
@@ -154,5 +154,11 @@ processAuthRequest (AuthRequest aticket hash) = do
   store <- liftIO . readTVarIO =<< rsTicketStore <$> ask
   let mticket = S.filter (\st -> ticketId st == aticket) store
   case S.toList mticket of
-    [ticket] -> generateToken ticket hash
+    [ticket] -> do
+      now <- liftIO $ getCurrentTime
+      if now > ticketExpiry ticket
+      then
+        return Denied
+      else
+        generateToken ticket hash
     _        -> return Denied
