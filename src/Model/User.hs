@@ -100,9 +100,7 @@ userSelect conn ref sw = do
           ]
   mapM
     (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) -> return $
-      if sw
-      then User i1 i2 i3 i4 i5 i6 (AuthSalt i7) (AuthHash <$> i8) (toEnum <$> i9)
-      else QueryUser i1 i2 i6
+      User i1 i2 i3 i4 i5 i6 (AuthSalt i7) (AuthHash <$> i8) (toEnum <$> i9)
       )
     users
 

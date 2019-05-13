@@ -35,6 +35,7 @@ instance ToJSON AuthInfo where
 
 instance FromJSON AuthInfo
 
+
 data AuthAlgorithm
   = SHA3_512
     deriving (Show, Read, Generic, Enum)
@@ -44,6 +45,7 @@ instance ToJSON AuthAlgorithm where
 
 instance FromJSON AuthAlgorithm where
   parseJSON j = read <$> parseJSON j
+
 
 newtype AuthTicket = AuthTicket ByteString deriving (Show, Eq, Ord)
 
@@ -57,6 +59,7 @@ instance FromJSON AuthTicket where
       return (AuthTicket enc)
       )
 
+
 newtype AuthSalt = AuthSalt ByteString deriving (Show)
 
 instance ToJSON AuthSalt where
@@ -68,6 +71,7 @@ instance FromJSON AuthSalt where
       let enc = fst $ B16.decode $ encodeUtf8 t
       return (AuthSalt enc)
       )
+
 
 newtype AuthHash = AuthHash ByteString deriving (Show)
 
@@ -81,6 +85,7 @@ instance FromJSON AuthHash where
       return (AuthHash enc)
       )
 
+
 data AuthRequest = AuthRequest
   { authRequestTicket :: AuthTicket
   , authRequestHash   :: AuthHash
@@ -92,6 +97,7 @@ instance ToJSON AuthRequest where
 
 instance FromJSON AuthRequest
 
+
 data AuthResult
   = Granted
     { authToken :: AuthToken
@@ -101,6 +107,7 @@ data AuthResult
 
 instance ToJSON AuthResult where
   toEncoding = genericToEncoding defaultOptions
+
 
 newtype AuthToken = AuthToken ByteString deriving (Show)
 
@@ -114,6 +121,7 @@ instance FromJSON AuthToken where
       return (AuthToken enc)
       )
 
+
 data Token = Token
   { tokenString :: ByteString
   , tokenUser   :: Int
@@ -124,7 +132,9 @@ data Token = Token
 instance ToJSON Token where
   toJSON (Token s _ _) = (String . decodeUtf8 . B16.encode) s
 
+
 type TicketStore = TVar (S.Set Ticket)
+
 
 data Ticket = Ticket
   { ticketId     :: AuthTicket

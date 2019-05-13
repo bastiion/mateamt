@@ -2,6 +2,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Model.Auth where
 
+import Servant (Handler)
+
 import GHC.Generics
 
 import Control.Arrow ((<<<))
@@ -84,6 +86,29 @@ getUserAuthInfo ident = do
       AuthInfo (AuthSalt i7) (toEnum $ fromMaybe 0 i9) <$> newTicket ident
       )
     users
+
+validateToken
+  :: PGS.Connection
+  -> ByteString
+  -> Handler (Maybe Int)
+validateToken conn header = do
+  tokens <- liftIO $ runSelect conn (
+    keepWhen (\(tstr, _, _) ->
+      tstr .== C.constant header) <<< queryTable tokenTable
+    ) :: Handler
+        [ ( ByteString
+          , Int
+          , UTCTime
+          )
+        ]
+  case tokens of
+    [(_, uid, stamp)] -> do
+      now <- liftIO $ getCurrentTime
+      if diffUTCTime stamp now > 0
+      then return $ Just uid
+      else return $ Nothing
+    _ ->
+      return Nothing
 
 generateToken
   :: Ticket

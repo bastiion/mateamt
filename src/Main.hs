@@ -2,6 +2,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
 module Main where
 
 import Servant
@@ -12,6 +13,8 @@ import Data.Time.Clock
 import Data.ByteString.Random
 
 import Data.Set (empty)
+
+import Data.Maybe (isJust)
 
 import Database.PostgreSQL.Simple
 
@@ -54,53 +57,51 @@ main = do
 
 app :: ReadState -> Application
 -- app conn = serveWithContext userApi genAuthServerContext (users conn)
-app initState = serveWithContext userApi genAuthServerContext $
-  hoistServerWithContext
-    userApi
-    authProxy
-    (`runReaderT` initState)
-    users
-  -- hoistServerWithContext
-  --   userApi
-  --   genAuthServerContext
-  --   (`runReaderT` initState)
-  --   users
+app initState =
+  serveWithContext userApi (genAuthServerContext (rsConnection initState)) $
+    hoistServerWithContext
+      userApi
+      authProxy
+      (`runReaderT` initState)
+      ( users :<|>
+        auth
+      )
 
 userApi :: Proxy UserAPI
 userApi = Proxy
 
-authProxy :: Proxy '[ AuthHandler Request Bool ]
+authProxy :: Proxy '[ AuthHandler Request (Maybe Int) ]
 authProxy = Proxy
 
-genAuthServerContext :: Context '[ AuthHandler Request Bool ]
-genAuthServerContext = authHandler Servant.:. EmptyContext
+genAuthServerContext
+  :: Connection
+  -> Context '[ AuthHandler Request (Maybe Int) ]
+genAuthServerContext conn = authHandler conn Servant.:. EmptyContext
 
-type instance AuthServerData (AuthProtect "header-auth") = Bool
+type instance AuthServerData (AuthProtect "header-auth") = Maybe Int
 
-authHandler :: AuthHandler Request Bool
-authHandler = mkAuthHandler handler
+authHandler :: Connection -> AuthHandler Request (Maybe Int)
+authHandler conn = mkAuthHandler handler
   where
+    handler :: Request -> Handler (Maybe Int)
     handler req = do
       let headers = requestHeaders req
-          res = case lookup "Authorization" headers of
-            Just _ -> True
-            _      -> False
+      res <- case lookup "Authorization" headers of
+        Just hh -> do
+          validateToken conn hh
+        _       ->
+          return Nothing
       return res
 
-users :: ServerT UserAPI (ReaderT ReadState Handler)
 users =
-  ( userList :<|>
-    userNew :<|>
-    userUpdate
-  ) :<|>
-  ( authGet :<|>
-    authSend
-  )
+  userList :<|>
+  userNew :<|>
+  userUpdate
   where
-    userList :: Maybe Refine -> Bool -> MateHandler [User]
-    userList ref sw = do
+    userList :: Maybe Refine -> Maybe Int -> MateHandler [User]
+    userList ref muid = do
       conn <- rsConnection <$> ask
-      userSelect conn ref sw
+      userSelect conn ref (isJust muid)
 
     userNew :: UserSubmit -> MateHandler Int
     userNew us = do
@@ -115,6 +116,10 @@ users =
       conn <- rsConnection <$> ask
       void $ liftIO $ runUpdate_ conn (updateUser id us (utctDay now))
 
+auth =
+  authGet :<|>
+  authSend
+  where
     authGet :: Int -> MateHandler AuthInfo
     authGet id =
       getUserAuthInfo id

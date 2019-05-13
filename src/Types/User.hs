@@ -26,24 +26,10 @@ data User
     , userHash      :: Maybe AuthHash
     , userAlgo      :: Maybe Int
     }
-  | QueryUser
-    { userId        :: Int
-    , userIdent     :: T.Text
-    , userAvatar    :: Maybe Int
-    }
   deriving (Generic, Show)
 
 instance ToJSON User where
   toEncoding (User id ident balance ts email avatar _ _ _) =
-    pairs
-      (  "userId" .= id
-      <> "userIdent" .= ident
-      <> "userBalance" .= balance
-      <> "userTimeStamp" .= ts
-      <> "userEmail" .= email
-      <> "userAvatar" .= avatar
-      )
-  toEncoding (QueryUser id ident avatar) =
     pairs
       (  "userId" .= id
       <> "userIdent" .= ident
