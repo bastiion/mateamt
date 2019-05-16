@@ -11,6 +11,7 @@ import Servant.Server.Experimental.Auth
 import Data.Time.Clock
 
 import Data.ByteString.Random
+import Data.ByteString.Base16 (decode)
 
 import Data.Set (empty)
 
@@ -88,7 +89,7 @@ authHandler conn = mkAuthHandler handler
       let headers = requestHeaders req
       res <- case lookup "Authorization" headers of
         Just hh -> do
-          validateToken conn hh
+          validateToken conn (fst $ decode hh)
         _       ->
           return Nothing
       return res
