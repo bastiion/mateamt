@@ -97,7 +97,8 @@ authHandler conn = mkAuthHandler handler
 users =
   userList :<|>
   userNew :<|>
-  userUpdate
+  userGetUpdate :<|>
+  userPostUpdate
   where
     userList :: Maybe Int -> Maybe Refine -> MateHandler [User]
     userList muid ref = do
@@ -111,18 +112,36 @@ users =
       conn <- rsConnection <$> ask
       head <$> (liftIO $ runInsert_ conn (insertUser us (utctDay now) randSalt))
 
-    userUpdate :: Maybe Int -> (Int, UserSubmit) -> MateHandler ()
-    userUpdate Nothing _ =
+    userGetUpdate :: Maybe Int -> Int -> MateHandler UserDetails
+    userGetUpdate Nothing _ =
       throwError $ err403
         { errBody = "No Authorization present"
         }
-    userUpdate (Just aid) (id, us) = if aid == id
+    userGetUpdate (Just aid) id =
+      if aid == id
       then do
         now <- liftIO $ getCurrentTime
         conn <- rsConnection <$> ask
-        void $ liftIO $ runUpdate_ conn (updateUser id us (utctDay now))
+        -- void $ liftIO $ runUpdate_ conn (updateUser id us (utctDay now))
+        userDetailsSelect conn id
       else
-      throwError $ err401
+      throwError $ err403
+        { errBody = "Wrong Authorization present"
+        }
+
+    userPostUpdate :: Maybe Int -> Int -> UserDetailsSubmit -> MateHandler ()
+    userPostUpdate Nothing _ _ =
+      throwError $ err403
+        { errBody = "No Authorization present"
+        }
+    userPostUpdate (Just aid) id uds =
+      if aid == id
+      then do
+        now <- liftIO $ getCurrentTime
+        conn <- rsConnection <$> ask
+        void $ liftIO $ runUpdate_ conn (updateUserDetails id uds (utctDay now))
+      else
+      throwError $ err403
         { errBody = "Wrong Authorization present"
         }
 

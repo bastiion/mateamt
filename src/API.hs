@@ -26,8 +26,10 @@ type UserAPI =
     ( "list" :> AuthProtect "header-auth"
       :> QueryParam "refine" Refine :> Get '[JSON] [User]
     :<|> "new" :> ReqBody '[JSON] UserSubmit :> Post '[JSON] Int
-    :<|> "update" :> AuthProtect "header-auth"
-      :> ReqBody '[JSON] (Int, UserSubmit) :> Post '[JSON] ()
+    :<|> "details" :> AuthProtect "header-auth"
+      :> Capture "id" Int :> Get '[JSON] UserDetails
+    :<|> "details" :> AuthProtect "header-auth"
+      :> Capture "id" Int :> ReqBody '[JSON] UserDetailsSubmit :> Post '[JSON] ()
     )
   :<|> "auth" :> 
     ( "get" :> ReqBody '[JSON] Int :> Post '[JSON] AuthInfo

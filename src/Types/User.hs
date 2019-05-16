@@ -38,6 +38,7 @@ instance ToJSON User where
 
 instance FromJSON User
 
+
 data UserSubmit = UserSubmit
   { userSubmitIdent :: T.Text
   , userSubmitEmail :: Maybe T.Text
@@ -46,6 +47,38 @@ data UserSubmit = UserSubmit
   deriving (Generic, Show)
 
 instance ToJSON UserSubmit where
-    toEncoding = genericToEncoding defaultOptions
+  toEncoding = genericToEncoding defaultOptions
 
 instance FromJSON UserSubmit
+
+
+data UserDetails = UserDetails
+  { userDetailsIdent   :: T.Text
+  , userDetailsBalance :: Int
+  , userDetailsEmail   :: Maybe T.Text
+  , userDetailsAvatar  :: Maybe Int
+  , userDetailsSalt    :: AuthSalt
+  , userDetailsAlgo    :: Maybe AuthAlgorithm
+  }
+  deriving (Generic, Show)
+
+instance ToJSON UserDetails where
+  toEncoding = genericToEncoding defaultOptions
+
+instance FromJSON UserDetails
+
+
+data UserDetailsSubmit = UserDetailsSubmit
+  { userDetailsSubmitIdent   :: T.Text
+  , userDetailsSubmitBalance :: Int
+  , userDetailsSubmitEmail   :: Maybe T.Text
+  , userDetailsSubmitAvatar  :: Maybe Int
+  , userDetailsSubmitHash    :: Maybe AuthHash
+  , userDetailsSubmitAlgo    :: Maybe AuthAlgorithm
+  }
+  deriving (Generic, Show)
+
+instance ToJSON UserDetailsSubmit where
+  toEncoding = genericToEncoding defaultOptions
+
+instance FromJSON UserDetailsSubmit
