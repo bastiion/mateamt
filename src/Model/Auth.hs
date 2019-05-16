@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Model.Auth where
 
-import Servant (Handler)
+import Servant
 
 import GHC.Generics
 
@@ -106,9 +106,13 @@ validateToken conn header = do
       now <- liftIO $ getCurrentTime
       if diffUTCTime stamp now > 0
       then return $ Just uid
-      else return $ Nothing
+      else throwError $ err401
+        { errBody = "Your token expired!"
+        }
     _ ->
-      return Nothing
+      throwError $ err401
+        { errBody = "No valid token found!"
+        }
 
 generateToken
   :: Ticket

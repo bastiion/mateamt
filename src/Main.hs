@@ -98,8 +98,8 @@ users =
   userNew :<|>
   userUpdate
   where
-    userList :: Maybe Refine -> Maybe Int -> MateHandler [User]
-    userList ref muid = do
+    userList :: Maybe Int -> Maybe Refine -> MateHandler [User]
+    userList muid ref = do
       conn <- rsConnection <$> ask
       userSelect conn ref (isJust muid)
 
@@ -110,11 +110,20 @@ users =
       conn <- rsConnection <$> ask
       head <$> (liftIO $ runInsert_ conn (insertUser us (utctDay now) randSalt))
 
-    userUpdate :: (Int, UserSubmit) -> MateHandler ()
-    userUpdate (id, us) = do
-      now <- liftIO $ getCurrentTime
-      conn <- rsConnection <$> ask
-      void $ liftIO $ runUpdate_ conn (updateUser id us (utctDay now))
+    userUpdate :: Maybe Int -> (Int, UserSubmit) -> MateHandler ()
+    userUpdate Nothing _ =
+      throwError $ err403
+        { errBody = "No Authorization present"
+        }
+    userUpdate (Just aid) (id, us) = if aid == id
+      then do
+        now <- liftIO $ getCurrentTime
+        conn <- rsConnection <$> ask
+        void $ liftIO $ runUpdate_ conn (updateUser id us (utctDay now))
+      else
+      throwError $ err401
+        { errBody = "Wrong Authorization present"
+        }
 
 auth =
   authGet :<|>

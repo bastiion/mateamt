@@ -23,10 +23,11 @@ import Types
 
 type UserAPI =
   "user" :>
-    ( "list" :> QueryParam "refine" Refine
-      :> AuthProtect "header-auth" :> Get '[JSON] [User]
+    ( "list" :> AuthProtect "header-auth"
+      :> QueryParam "refine" Refine :> Get '[JSON] [User]
     :<|> "new" :> ReqBody '[JSON] UserSubmit :> Post '[JSON] Int
-    :<|> "update" :> ReqBody '[JSON] (Int, UserSubmit) :> Post '[JSON] ()
+    :<|> "update" :> AuthProtect "header-auth"
+      :> ReqBody '[JSON] (Int, UserSubmit) :> Post '[JSON] ()
     )
   :<|> "auth" :> 
     ( "get" :> ReqBody '[JSON] Int :> Post '[JSON] AuthInfo
