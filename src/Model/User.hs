@@ -155,10 +155,10 @@ insertUser us now randSalt = Insert
 updateUserDetails :: Int -> UserDetailsSubmit -> Day -> Update Int64
 updateUserDetails id uds now = Update
   { uTable = userTable
-  , uUpdateWith = updateEasy (\(id_, _, _, _, _, _, i7, i8, _) ->
+  , uUpdateWith = updateEasy (\(id_, _, i3, _, _, _, i7, i8, _) ->
       ( id_
       , C.constant (userDetailsSubmitIdent uds)
-      , C.constant (userDetailsSubmitBalance uds)
+      , i3
       , C.constant now
       , C.constant (userDetailsSubmitEmail uds)
       , C.constant (userDetailsSubmitAvatar uds)

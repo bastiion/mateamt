@@ -70,7 +70,6 @@ instance FromJSON UserDetails
 
 data UserDetailsSubmit = UserDetailsSubmit
   { userDetailsSubmitIdent   :: T.Text
-  , userDetailsSubmitBalance :: Int
   , userDetailsSubmitEmail   :: Maybe T.Text
   , userDetailsSubmitAvatar  :: Maybe Int
   , userDetailsSubmitHash    :: Maybe AuthHash

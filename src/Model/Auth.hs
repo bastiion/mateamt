@@ -14,11 +14,15 @@ import Control.Monad.IO.Class (liftIO)
 
 import Control.Monad.Reader (ask)
 
+import Control.Concurrent (threadDelay, forkIO)
+
 import Control.Concurrent.STM
 
 import Data.Profunctor.Product (p3)
 
 import qualified Database.PostgreSQL.Simple as PGS
+
+import Data.Int (Int64)
 
 import Data.Text (Text)
 
@@ -67,21 +71,23 @@ getUserAuthInfo
   -> MateHandler AuthInfo
 getUserAuthInfo ident = do
   conn <- rsConnection <$> ask
-  users <- liftIO $ runSelect conn (
-    keepWhen (\(uid, _, _, _, _, _, _, _, _) ->
-      uid .== C.constant ident) <<< queryTable userTable
-    ) :: MateHandler
-        [ ( Int
-          , Text
-          , Int
-          , Day
-          , Maybe Text
-          , Maybe Int
-          , ByteString
-          , Maybe ByteString
-          , Maybe Int
-          )
-        ]
+  users <- liftIO $ do
+    void $ threadDelay $ 1 * 10 ^ 6
+    runSelect conn (
+      keepWhen (\(uid, _, _, _, _, _, _, _, _) ->
+        uid .== C.constant ident) <<< queryTable userTable
+      ) :: IO
+          [ ( Int
+            , Text
+            , Int
+            , Day
+            , Maybe Text
+            , Maybe Int
+            , ByteString
+            , Maybe ByteString
+            , Maybe Int
+            )
+          ]
   head <$> mapM (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) ->
       AuthInfo (AuthSalt i7) (toEnum $ fromMaybe 0 i9) <$> newTicket ident
       )
@@ -106,10 +112,15 @@ validateToken conn header = do
       now <- liftIO $ getCurrentTime
       if diffUTCTime stamp now > 0
       then return $ Just uid
-      else throwError $ err401
-        { errBody = "Your token expired!"
-        }
-    _ ->
+      else do
+        liftIO $ do
+           void $ forkIO $ void $ runDelete_ conn (deleteToken header)
+           threadDelay $ 1 * 10 ^ 6
+        throwError $ err401
+          { errBody = "Your token expired!"
+          }
+    _ -> do
+      liftIO $ threadDelay $ 1 * 10 ^ 6
       throwError $ err401
         { errBody = "No valid token found!"
         }
@@ -163,6 +174,15 @@ insertToken (Token tString tUser tExpiry) = Insert
   , iOnConflict = Nothing
   }
 
+deleteToken
+  :: ByteString
+  -> Opaleye.Delete Int64
+deleteToken tstr = Delete
+  { dTable     = tokenTable
+  , dWhere     = (\(rtstr, _, _) -> rtstr .== C.constant tstr)
+  , dReturning = rCount
+  }
+
 newTicket :: Int -> MateHandler AuthTicket
 newTicket ident = do
   store <- rsTicketStore <$> ask
@@ -185,9 +205,12 @@ processAuthRequest (AuthRequest aticket hash) = do
   case S.toList mticket of
     [ticket] -> do
       now <- liftIO $ getCurrentTime
+      liftIO $ threadDelay $ 1 * 10 ^ 6
       if now > ticketExpiry ticket
       then
         return Denied
       else
         generateToken ticket hash
-    _        -> return Denied
+    _        -> do
+      liftIO $ threadDelay $ 1 * 10 ^ 6
+      return Denied
