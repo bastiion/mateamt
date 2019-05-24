@@ -36,7 +36,7 @@ import Data.ByteString.Random
 
 import Data.Maybe (fromMaybe)
 
-import Opaleye
+import Opaleye hiding (null)
 import qualified Opaleye.Constant as C
 
 -- internal imports
@@ -47,7 +47,7 @@ import Types.Reader
 import Model.User
 
 initToken :: PGS.Query
-initToken = "create table if not exists \"token\" (token_string bytea not null primary key, token_user integer not null, token_expiry timestamptz not null)"
+initToken = "create table if not exists \"token\" (token_string bytea not null primary key, token_user integer references \"user\"(user_id) not null, token_expiry timestamptz not null)"
 
 tokenTable :: Table
   ( Field SqlBytea
@@ -88,10 +88,15 @@ getUserAuthInfo ident = do
             , Maybe Int
             )
           ]
-  head <$> mapM (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) ->
-      AuthInfo (AuthSalt i7) (toEnum $ fromMaybe 0 i9) <$> newTicket ident
-      )
-    users
+  if null users
+  then throwError $ err404
+    { errBody = "No such user"
+    }
+  else
+    head <$> mapM (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) ->
+        AuthInfo (AuthSalt i7) (toEnum $ fromMaybe 0 i9) <$> newTicket ident
+        )
+      users
 
 validateToken
   :: PGS.Connection
