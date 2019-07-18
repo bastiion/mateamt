@@ -13,11 +13,11 @@ data Beverage = Beverage
   , beverageAmount         :: Int
   , beverageVanish         :: Int
   , beverageMl             :: Int
-  , beverageAvatar         :: Maybe Word
-  , beverageSupplier       :: Maybe Word
+  , beverageAvatar         :: Maybe Int
+  , beverageSupplier       :: Maybe Int
   , beverageMaxAmount      :: Int
   , beverageTotalBought    :: Int
-  , beverageAmonutPerCrate :: Int
+  , beverageAmountPerCrate :: Int
   , beveragePricePerCrate  :: Maybe Int
   , beverageArtNr          :: Maybe T.Text
   } deriving (Generic, Show)
@@ -26,3 +26,24 @@ instance ToJSON Beverage where
   toEncoding = genericToEncoding defaultOptions
 
 instance FromJSON Beverage
+
+
+data BeverageSubmit = BeverageSubmit
+  { beverageSubmitIdent          :: T.Text
+  , beverageSubmitPrice          :: Int
+  -- , beverageSubmitAmount         :: Int
+  -- , beverageSubmitVanish         :: Int
+  , beverageSubmitMl             :: Int
+  -- , beverageSubmitAvatar         :: Maybe Int
+  , beverageSubmitSupplier       :: Maybe Int
+  , beverageSubmitMaxAmount      :: Int
+  -- , beverageSubmitTotalBought    :: Int
+  , beverageSubmitAmountPerCrate :: Int
+  , beverageSubmitPricePerCrate  :: Maybe Int
+  , beverageSubmitArtNr          :: Maybe T.Text
+  } deriving (Generic, Show)
+
+instance ToJSON BeverageSubmit where
+  toEncoding = genericToEncoding defaultOptions
+
+instance FromJSON BeverageSubmit

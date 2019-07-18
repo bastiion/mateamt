@@ -65,6 +65,7 @@ app initState =
       authProxy
       (`runReaderT` initState)
       ( users :<|>
+        beverages :<|>
         auth
       )
 
@@ -103,7 +104,7 @@ users =
     userList :: Maybe Int -> Maybe Refine -> MateHandler [User]
     userList muid ref = do
       conn <- rsConnection <$> ask
-      userSelect conn ref (isJust muid)
+      userSelect conn ref
 
     userNew :: UserSubmit -> MateHandler Int
     userNew us = do
@@ -144,6 +145,20 @@ users =
       throwError $ err403
         { errBody = "Wrong Authorization present"
         }
+
+beverages =
+  list :<|>
+  new
+  where
+    list :: MateHandler [Beverage]
+    list = do
+      conn <- rsConnection <$> ask
+      beverageSelect conn
+
+    new :: Maybe Int -> BeverageSubmit -> MateHandler Int
+    new _ bevsub = do
+      conn <- rsConnection <$> ask
+      head <$> (liftIO $ runInsert_ conn (insertBeverage bevsub))
 
 auth =
   authGet :<|>
