@@ -189,6 +189,17 @@ deleteToken tstr = Delete
   , dReturning = rCount
   }
 
+
+deleteTokenByUserId
+  :: Int
+  -> Opaleye.Delete Int64
+deleteTokenByUserId uid = Delete
+  { dTable     = tokenTable
+  , dWhere     = (\(_, rid, _) -> rid .== C.constant uid)
+  , dReturning = rCount
+  }
+
+
 newTicket :: Int -> MateHandler AuthTicket
 newTicket ident = do
   store <- rsTicketStore <$> ask
@@ -232,3 +243,10 @@ processAuthRequest (AuthRequest aticket hash) = do
 #else
       return Denied
 #endif
+
+processLogout
+  :: Int
+  -> MateHandler ()
+processLogout uid = do
+  conn <- rsConnection <$> ask
+  liftIO $ void $ runDelete_ conn (deleteTokenByUserId uid)

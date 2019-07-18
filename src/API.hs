@@ -39,4 +39,6 @@ type UserAPI =
   :<|> "auth" :> 
     ( "get" :> ReqBody '[JSON] Int :> Post '[JSON] AuthInfo
     :<|> "send" :> ReqBody '[JSON] AuthRequest :> Post '[JSON] AuthResult
+    :<|> "logout" :> AuthProtect "header-auth" :> ReqBody '[JSON] Int
+      :> Post '[JSON] ()
     )
