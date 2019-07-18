@@ -66,6 +66,7 @@ app initState =
       (`runReaderT` initState)
       ( users :<|>
         products :<|>
+        buy :<|>
         auth
       )
 
@@ -169,6 +170,12 @@ products =
       void $ liftIO $ runUpdate_ conn (updateProduct bid bevsub)
     update Nothing _ _ =
       throwError $ err403
+
+buy (Just auid) pds = do
+  error "Buying not yet implemented"
+  conn <- rsConnection <$> ask
+  price <- foldl (\total pd -> total + getBeveragePrice pd) 0 pds
+  liftIO $ runUpdate_ conn updateUserBalance auid
 
 auth =
   authGet :<|>

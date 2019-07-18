@@ -105,6 +105,41 @@ productSelect conn = do
     bevs
 
 
+getProductPrice
+  :: PurchaseDetail
+  -> PGS.Connection
+  -> MateHandler Int
+getproductproce (PurchaseDetail bid amount) conn = do
+  when (amount <= 0)
+    throwError $ err406
+      { errBody = "Amounts less or equal zero are not acceptable"
+  bevs <- liftIO $ runSelect conn
+    ( keepWhen
+      (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) -> id_ .== C.constant bid) <<<
+        queryTable productTable
+    ) :: MateHandler
+        [ ( Int
+          , T.Text
+          , Int
+          , Int
+          , Int
+          , Int
+          , Maybe Int
+          , Maybe Int
+          , Int
+          , Int
+          , Int
+          , Maybe Int
+          , Maybe T.Text
+          )
+        ]
+  (amount *) <$> head <$> mapM
+    (\(i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, i12, i13) -> return $
+      i3
+      )
+    bevs
+
+
 insertProduct
   :: ProductSubmit
   -> Insert [Int]

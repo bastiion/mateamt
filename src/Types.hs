@@ -7,3 +7,4 @@ import Types.Product as T
 import Types.Refine as T
 import Types.Reader as T
 import Types.User as T
+import Types.Purchase as T
