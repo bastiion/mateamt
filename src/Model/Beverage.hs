@@ -9,6 +9,8 @@ import Data.Profunctor.Product (p13)
 import Data.Aeson
 import Data.Aeson.Types
 
+import Data.Int (Int64)
+
 import Control.Monad.IO.Class (liftIO)
 
 import Control.Arrow ((<<<))
@@ -98,14 +100,15 @@ beverageSelect conn = do
         ]
   mapM
     (\(i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, i12, i13) -> return $
-      Beverage i2 i3 i4 i5 i6 i7 i8 i9 i10 i11 i12 i13
+      Beverage i1 i2 i3 i4 i5 i6 i7 i8 i9 i10 i11 i12 i13
       )
     bevs
+
 
 insertBeverage
   :: BeverageSubmit
   -> Insert [Int]
-insertBeverage (BeverageSubmit ident price ml sup max apc ppc artnr) = Insert
+insertBeverage (BeverageSubmit ident price ml ava sup max apc ppc artnr) = Insert
   { iTable = beverageTable
   , iRows  =
     [
@@ -115,7 +118,7 @@ insertBeverage (BeverageSubmit ident price ml sup max apc ppc artnr) = Insert
     , C.constant (0 :: Int)
     , C.constant (0 :: Int)
     , C.constant ml
-    , C.constant (Nothing :: Maybe Int)
+    , C.constant ava
     , C.constant sup
     , C.constant max
     , C.constant (0 :: Int)
@@ -126,4 +129,34 @@ insertBeverage (BeverageSubmit ident price ml sup max apc ppc artnr) = Insert
     ]
   , iReturning = rReturning (\(id, _, _, _, _, _, _, _, _, _, _, _, _) -> id)
   , iOnConflict = Nothing
+  }
+
+
+updateBeverage
+  :: Int
+  -> BeverageSubmit
+  -> Update Int64
+updateBeverage sid (BeverageSubmit ident price ml ava sup max apc ppc artnr) = Update
+  { uTable      = beverageTable
+  , uUpdateWith = updateEasy (\(id_, _, _, amo, van, _, _, _, _, tot, _, _, _) ->
+      ( id_
+      , C.constant ident
+      , C.constant price
+      , amo
+      , van
+      , C.constant ml
+      , C.constant ava
+      , C.constant sup
+      , C.constant max
+      , tot
+      , C.constant apc
+      , C.constant ppc
+      , C.constant artnr
+      )
+    )
+  , uWhere      =
+    (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) ->
+      id_ .== C.constant sid
+    )
+  , uReturning = rCount
   }

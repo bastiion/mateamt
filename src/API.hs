@@ -35,6 +35,8 @@ type UserAPI =
     ( "list" :> Get '[JSON] [Beverage]
     :<|> "new" :> AuthProtect "header-auth" :> ReqBody '[JSON] BeverageSubmit
       :> Post '[JSON] Int
+    :<|> "update" :> AuthProtect "header-auth"
+      :> Capture "id" Int :> ReqBody '[JSON] BeverageSubmit :> Post '[JSON] ()
     )
   :<|> "auth" :> 
     ( "get" :> ReqBody '[JSON] Int :> Post '[JSON] AuthInfo

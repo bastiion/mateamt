@@ -8,7 +8,8 @@ import Data.Aeson
 import qualified Data.Text as T
 
 data Beverage = Beverage
-  { beverageIdent          :: T.Text
+  { beverageId             :: Int
+  , beverageIdent          :: T.Text
   , beveragePrice          :: Int
   , beverageAmount         :: Int
   , beverageVanish         :: Int
@@ -34,7 +35,7 @@ data BeverageSubmit = BeverageSubmit
   -- , beverageSubmitAmount         :: Int
   -- , beverageSubmitVanish         :: Int
   , beverageSubmitMl             :: Int
-  -- , beverageSubmitAvatar         :: Maybe Int
+  , beverageSubmitAvatar         :: Maybe Int
   , beverageSubmitSupplier       :: Maybe Int
   , beverageSubmitMaxAmount      :: Int
   -- , beverageSubmitTotalBought    :: Int

@@ -116,7 +116,7 @@ users =
     userGetUpdate :: Maybe Int -> Int -> MateHandler UserDetails
     userGetUpdate Nothing _ =
       throwError $ err403
-        { errBody = "No Authorization present"
+        { errBody = "No Authentication present"
         }
     userGetUpdate (Just aid) id =
       if aid == id
@@ -127,13 +127,13 @@ users =
         userDetailsSelect conn id
       else
         throwError $ err403
-          { errBody = "Wrong Authorization present"
+          { errBody = "Wrong Authentication present"
           }
 
     userPostUpdate :: Maybe Int -> Int -> UserDetailsSubmit -> MateHandler ()
-    userPostUpdate Nothing _ _ =
+    use359c65b0e68b6607a03d39f908ca26827ab97fb6e21096rPostUpdate Nothing _ _ =
       throwError $ err403
-        { errBody = "No Authorization present"
+        { errBody = "No Authentication present"
         }
     userPostUpdate (Just aid) id uds =
       if aid == id
@@ -143,12 +143,13 @@ users =
         void $ liftIO $ runUpdate_ conn (updateUserDetails id uds (utctDay now))
       else
         throwError $ err403
-          { errBody = "Wrong Authorization present"
+          { errBody = "Wrong Authentication present"
           }
 
 beverages =
   list :<|>
-  new
+  new :<|>
+  update
   where
     list :: MateHandler [Beverage]
     list = do
@@ -156,9 +157,18 @@ beverages =
       beverageSelect conn
 
     new :: Maybe Int -> BeverageSubmit -> MateHandler Int
-    new _ bevsub = do
+    new (Just _) bevsub = do
       conn <- rsConnection <$> ask
       head <$> (liftIO $ runInsert_ conn (insertBeverage bevsub))
+    new Nothing _ =
+      throwError $ err403
+
+    update :: Maybe Int -> Int -> BeverageSubmit -> MateHandler ()
+    update (Just _) bid bevsub = do
+      conn <- rsConnection <$> ask
+      void $ liftIO $ runUpdate_ conn (updateBeverage bid bevsub)
+    update Nothing _ _ =
+      throwError $ err403
 
 auth =
   authGet :<|>
