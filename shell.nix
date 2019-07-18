@@ -13,6 +13,7 @@ let
         pname = "mateamt";
         version = "0.0.0.0";
         src = ./.;
+        configureFlags = [ "-fdevelop" ];
         isLibrary = false;
         isExecutable = true;
         executableHaskellDepends = [

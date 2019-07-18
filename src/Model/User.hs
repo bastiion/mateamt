@@ -74,9 +74,8 @@ userTable = table "user" (
 userSelect
   :: PGS.Connection
   -> Maybe Refine
-  -> Bool
   -> MateHandler [User]
-userSelect conn ref sw = do
+userSelect conn ref = do
   today <- utctDay <$> (liftIO $ getCurrentTime)
   users <- liftIO $ runSelect conn (case ref of
       Nothing -> keepWhen (\(_, _, _, ts, _, _, _, _, _) ->

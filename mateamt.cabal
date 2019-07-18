@@ -15,6 +15,11 @@ maintainer:          nek0@nek0.eu
 category:            Web
 extra-source-files:  CHANGELOG.md
 
+flag develop
+  description:       compile mateamt in developer mode. Authentication disabled,
+  default:           False
+  manual:            True
+
 executable mateamt
   main-is:             Main.hs
   other-modules:       API
@@ -50,3 +55,5 @@ executable mateamt
                      , mtl
   hs-source-dirs:      src
   default-language:    Haskell2010
+  if flag(develop)
+    cpp-options:       -DDEVELOP

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Model.Auth where
@@ -213,9 +214,21 @@ processAuthRequest (AuthRequest aticket hash) = do
       liftIO $ threadDelay $ 1 * 10 ^ 6
       if now > ticketExpiry ticket
       then
+#if defined(DEVELOP)
+        do
+          mockticket <- Ticket <$> pure aticket <*> pure 1 <*> liftIO getCurrentTime
+          generateToken mockticket hash
+#else
         return Denied
+#endif
       else
         generateToken ticket hash
     _        -> do
       liftIO $ threadDelay $ 1 * 10 ^ 6
+#if defined(DEVELOP)
+      do
+        mockticket <- Ticket <$> pure aticket <*> pure 1 <*> liftIO getCurrentTime
+        generateToken mockticket hash
+#else
       return Denied
+#endif
