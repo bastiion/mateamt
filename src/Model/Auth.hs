@@ -47,6 +47,7 @@ import Types.Reader
 
 import Model.User
 
+
 initToken :: PGS.Query
 initToken = "create table if not exists \"token\" (token_string bytea not null primary key, token_user integer references \"user\"(user_id) not null, token_expiry timestamptz not null)"
 
@@ -66,6 +67,7 @@ tokenTable = table "token" (
       , tableField "token_expiry"
       )
     )
+
 
 getUserAuthInfo
   :: Int
@@ -99,6 +101,7 @@ getUserAuthInfo ident = do
         )
       users
 
+
 validateToken
   :: PGS.Connection
   -> ByteString
@@ -130,6 +133,7 @@ validateToken conn header = do
       throwError $ err401
         { errBody = "No valid token found!"
         }
+
 
 generateToken
   :: Ticket
@@ -164,6 +168,7 @@ generateToken (Ticket _ ident exp) (AuthHash hash) = do
   else
     return Denied
 
+
 insertToken
   :: Token
   -> Insert [ByteString]
@@ -179,6 +184,7 @@ insertToken (Token tString tUser tExpiry) = Insert
   , iReturning = rReturning (\(ident, _, _) -> ident)
   , iOnConflict = Nothing
   }
+
 
 deleteToken
   :: ByteString
@@ -212,6 +218,7 @@ newTicket ident = do
         }
   liftIO $ atomically $ modifyTVar store (\s -> S.insert ticket s)
   return (AuthTicket rand)
+
 
 processAuthRequest
   :: AuthRequest

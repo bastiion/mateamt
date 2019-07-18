@@ -126,9 +126,9 @@ users =
         -- void $ liftIO $ runUpdate_ conn (updateUser id us (utctDay now))
         userDetailsSelect conn id
       else
-      throwError $ err403
-        { errBody = "Wrong Authorization present"
-        }
+        throwError $ err403
+          { errBody = "Wrong Authorization present"
+          }
 
     userPostUpdate :: Maybe Int -> Int -> UserDetailsSubmit -> MateHandler ()
     userPostUpdate Nothing _ _ =
@@ -142,9 +142,9 @@ users =
         conn <- rsConnection <$> ask
         void $ liftIO $ runUpdate_ conn (updateUserDetails id uds (utctDay now))
       else
-      throwError $ err403
-        { errBody = "Wrong Authorization present"
-        }
+        throwError $ err403
+          { errBody = "Wrong Authorization present"
+          }
 
 beverages =
   list :<|>
