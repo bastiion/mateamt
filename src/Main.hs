@@ -88,8 +88,8 @@ authHandler conn = mkAuthHandler handler
     handler :: Request -> Handler (Maybe Int)
     handler req = do
       let headers = requestHeaders req
-      res <- case lookup "Authorization" headers of
-        Just hh -> do
+      res <- case lookup "Authentication" headers of
+        Just hh ->
           validateToken conn (fst $ decode hh)
         _       ->
           return Nothing
