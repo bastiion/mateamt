@@ -31,12 +31,12 @@ type UserAPI =
     :<|> "details" :> AuthProtect "header-auth"
       :> Capture "id" Int :> ReqBody '[JSON] UserDetailsSubmit :> Post '[JSON] ()
     )
-  :<|> "beverage" :>
-    ( "list" :> Get '[JSON] [Beverage]
-    :<|> "new" :> AuthProtect "header-auth" :> ReqBody '[JSON] BeverageSubmit
+  :<|> "product" :>
+    ( "list" :> Get '[JSON] [Product]
+    :<|> "new" :> AuthProtect "header-auth" :> ReqBody '[JSON] ProductSubmit
       :> Post '[JSON] Int
     :<|> "update" :> AuthProtect "header-auth"
-      :> Capture "id" Int :> ReqBody '[JSON] BeverageSubmit :> Post '[JSON] ()
+      :> Capture "id" Int :> ReqBody '[JSON] ProductSubmit :> Post '[JSON] ()
     )
   :<|> "auth" :> 
     ( "get" :> ReqBody '[JSON] Int :> Post '[JSON] AuthInfo

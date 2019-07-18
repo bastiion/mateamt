@@ -46,7 +46,7 @@ main = do
     "host='localhost' port=5432 dbname='mateamt' user='mateamt' password='mateamt'"
   store <- newTVarIO empty
   execute_ conn initUser
-  execute_ conn initBeverage
+  execute_ conn initProduct
   execute_ conn initToken
   withStdoutLogger $ \log -> do
     let settings = setPort 3000 $ setLogger log defaultSettings
@@ -65,7 +65,7 @@ app initState =
       authProxy
       (`runReaderT` initState)
       ( users :<|>
-        beverages :<|>
+        products :<|>
         auth
       )
 
@@ -146,27 +146,27 @@ users =
           { errBody = "Wrong Authentication present"
           }
 
-beverages =
+products =
   list :<|>
   new :<|>
   update
   where
-    list :: MateHandler [Beverage]
+    list :: MateHandler [Product]
     list = do
       conn <- rsConnection <$> ask
-      beverageSelect conn
+      productSelect conn
 
-    new :: Maybe Int -> BeverageSubmit -> MateHandler Int
+    new :: Maybe Int -> ProductSubmit -> MateHandler Int
     new (Just _) bevsub = do
       conn <- rsConnection <$> ask
-      head <$> (liftIO $ runInsert_ conn (insertBeverage bevsub))
+      head <$> (liftIO $ runInsert_ conn (insertProduct bevsub))
     new Nothing _ =
       throwError $ err403
 
-    update :: Maybe Int -> Int -> BeverageSubmit -> MateHandler ()
+    update :: Maybe Int -> Int -> ProductSubmit -> MateHandler ()
     update (Just _) bid bevsub = do
       conn <- rsConnection <$> ask
-      void $ liftIO $ runUpdate_ conn (updateBeverage bid bevsub)
+      void $ liftIO $ runUpdate_ conn (updateProduct bid bevsub)
     update Nothing _ _ =
       throwError $ err403
 

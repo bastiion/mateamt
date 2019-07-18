@@ -25,11 +25,11 @@ executable mateamt
   other-modules:       API
                      , Model
                      , Model.User
-                     , Model.Beverage
+                     , Model.Product
                      , Model.Auth
                      , Types
                      , Types.Auth
-                     , Types.Beverage
+                     , Types.Product
                      , Types.Reader
                      , Types.Refine
                      , Types.User

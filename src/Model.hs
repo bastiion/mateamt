@@ -3,5 +3,5 @@ module Model
   ) where
 
 import Model.User as M
-import Model.Beverage as M
+import Model.Product as M
 import Model.Auth as M
