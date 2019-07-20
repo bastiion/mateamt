@@ -23,7 +23,7 @@ import Network.Wai
 import Network.Wai.Logger
 import Network.Wai.Handler.Warp
 
-import Opaleye
+import Opaleye hiding (max)
 
 import Control.Monad.IO.Class (liftIO)
 
@@ -171,11 +171,54 @@ products =
     update Nothing _ _ =
       throwError $ err403
 
+buy :: Maybe Int -> [PurchaseDetail] -> MateHandler PurchaseResult
 buy (Just auid) pds = do
-  error "Buying not yet implemented"
   conn <- rsConnection <$> ask
-  price <- foldl (\total pd -> total + getBeveragePrice pd) 0 pds
-  liftIO $ runUpdate_ conn updateUserBalance auid
+  (missing, real) <- foldM (\acc@(ms, rs) pd -> do
+    mmiss <- checkProductAvailability conn pd
+    case mmiss of
+      Just miss -> return
+        ( (pd {pdAmount = miss}):ms
+        , (pd {pdAmount = max 0 (pdAmount pd - miss)}:rs)
+        )
+      Nothing -> return
+        ( ms
+        , pd:rs
+        )
+    )
+    ([], [])
+    pds
+  void$ liftIO $ mapM_ (\pd -> runUpdate_ conn (reduceProductAmount pd)) real
+  price <- foldM (\total pd -> fmap (+ total) (getProductPrice pd conn)) 0 real
+  liftIO $ runUpdate_ conn (addToUserBalance auid (-price))
+  newBalance <- userBalanceSelect conn auid
+  return $ PurchaseResult
+    ( if newBalance < 0
+      then PurchaseDebtful
+      else PurchaseOK
+    )
+    missing
+buy Nothing pds = do
+  conn <- rsConnection <$> ask
+  (missing, real) <- foldM (\acc@(ms, rs) pd -> do
+    mmiss <- checkProductAvailability conn pd
+    case mmiss of
+      Just miss -> return
+        ( (pd {pdAmount = miss}):ms
+        , (pd {pdAmount = max 0 (pdAmount pd - miss)}:rs)
+        )
+      Nothing -> return
+        ( ms
+        , pd:rs
+        )
+    )
+    ([], [])
+    pds
+  void $ liftIO $ mapM_ (\pd -> runUpdate_ conn (reduceProductAmount pd)) real
+  price <- foldM (\total pd -> fmap (+ total) (getProductPrice pd conn)) 0 real
+  return $ PurchaseResult
+    (PayAmount price)
+    missing
 
 auth =
   authGet :<|>

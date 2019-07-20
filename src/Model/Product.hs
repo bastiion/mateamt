@@ -2,7 +2,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Model.Product where
 
-import Data.Text as T
+import Servant.Server
+
+import Data.Text as T hiding (head)
 import Data.Time.Calendar (Day)
 import Data.Profunctor.Product (p13)
 
@@ -11,7 +13,9 @@ import Data.Aeson.Types
 
 import Data.Int (Int64)
 
+import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Error.Class (throwError)
 
 import Control.Arrow ((<<<))
 
@@ -109,10 +113,12 @@ getProductPrice
   :: PurchaseDetail
   -> PGS.Connection
   -> MateHandler Int
-getproductproce (PurchaseDetail bid amount) conn = do
-  when (amount <= 0)
+getProductPrice (PurchaseDetail bid amount) conn = do
+  when (amount < 0) (
     throwError $ err406
       { errBody = "Amounts less or equal zero are not acceptable"
+      }
+    )
   bevs <- liftIO $ runSelect conn
     ( keepWhen
       (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) -> id_ .== C.constant bid) <<<
@@ -138,6 +144,45 @@ getproductproce (PurchaseDetail bid amount) conn = do
       i3
       )
     bevs
+
+
+checkProductAvailability
+  :: PGS.Connection
+  -> PurchaseDetail
+  -> MateHandler (Maybe Int) -- | returns maybe missing amount
+checkProductAvailability conn (PurchaseDetail bid amount) = do
+  when (amount <= 0) $
+    throwError $ err406
+      { errBody = "Amounts less or equal zero are not acceptable"
+      }
+  bevs <- liftIO $ runSelect conn
+    ( keepWhen
+      (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) -> id_ .== C.constant bid) <<<
+        queryTable productTable
+    ) :: MateHandler
+        [ ( Int
+          , T.Text
+          , Int
+          , Int
+          , Int
+          , Int
+          , Maybe Int
+          , Maybe Int
+          , Int
+          , Int
+          , Int
+          , Maybe Int
+          , Maybe T.Text
+          )
+        ]
+  realamount <- head <$> mapM
+    (\(i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, i12, i13) -> return $
+      i4
+      )
+    bevs
+  if realamount < amount
+  then return (Just (amount - realamount))
+  else return Nothing
 
 
 insertProduct
@@ -192,6 +237,35 @@ updateProduct sid (ProductSubmit ident price ml ava sup max apc ppc artnr) = Upd
   , uWhere      =
     (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) ->
       id_ .== C.constant sid
+    )
+  , uReturning = rCount
+  }
+
+reduceProductAmount
+  :: PurchaseDetail
+  -> Update Int64
+reduceProductAmount (PurchaseDetail pid amount) = Update
+  { uTable      = productTable
+  , uUpdateWith = updateEasy
+    (\(id_, ident, price, amo, van, ml, ava, sup, max, tot, apc, ppc, artnr) ->
+      ( id_
+      , ident
+      , price
+      , amo - C.constant amount
+      , van
+      , ml
+      , ava
+      , sup
+      , max
+      , tot + C.constant amount
+      , apc
+      , ppc
+      , artnr
+      )
+    )
+  , uWhere      = 
+    (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) ->
+      id_ .== C.constant pid
     )
   , uReturning = rCount
   }
