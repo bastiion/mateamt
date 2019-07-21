@@ -34,7 +34,7 @@ import Types.Auth
 import Types.Reader
 
 initUser :: PGS.Query
-initUser = foldl (<>) "" $
+initUser = mconcat
   [ "create table if not exists \"user\" ("
   , "user_id serial primary key,"
   , "user_ident varchar(128) not null,"

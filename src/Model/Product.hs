@@ -31,7 +31,7 @@ import Opaleye.Constant as C
 import Types
 
 initProduct :: PGS.Query
-initProduct = foldl (<>) "" $
+initProduct = mconcat
   [ "create table if not exists \"product\" ("
   , "product_id serial primary key,"
   , "product_ident varchar(128) not null,"

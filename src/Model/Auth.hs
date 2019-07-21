@@ -49,7 +49,7 @@ import Model.User
 
 
 initToken :: PGS.Query
-initToken = foldl (<>) "" $
+initToken = mconcat
   [ "create table if not exists \"token\" ("
   , "token_string bytea not null primary key,"
   , "token_user integer references \"user\"(user_id) not null,"
