@@ -17,6 +17,7 @@ initAmount = mconcat
   , "amounts_price      INTEGER     NOT NULL,"
   , "amounts_verified   BOOLEAN     NOT NULL,"
   , "PRIMARY KEY (product_id, timestamp)"
+  , ")"
   ]
 
 amountTable :: Table
