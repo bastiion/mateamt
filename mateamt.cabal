@@ -27,6 +27,7 @@ executable mateamt
                      , Model.User
                      , Model.Product
                      , Model.Auth
+                     , Model.Amount
                      , Types
                      , Types.Auth
                      , Types.Product
