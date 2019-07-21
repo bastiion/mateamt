@@ -131,6 +131,36 @@ userDetailsSelect conn id = do
       )
     users
 
+
+userBalanceSelect
+  :: PGS.Connection
+  -> Int
+  -> MateHandler Int
+userBalanceSelect conn id = do
+  today <- utctDay <$> (liftIO $ getCurrentTime)
+  users <- liftIO $ runSelect conn (
+      keepWhen (\(uid, _, _, _, _, _, _, _, _) ->
+        uid .== C.constant id
+        ) <<< queryTable userTable
+      ) :: MateHandler
+          [ ( Int
+            , Text
+            , Int
+            , Day
+            , Maybe Text
+            , Maybe Int
+            , ByteString
+            , Maybe ByteString
+            , Maybe Int
+            )
+          ]
+  head <$> mapM
+    (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) -> return $
+      i3
+      )
+    users
+
+
 insertUser :: UserSubmit -> Day -> ByteString -> Insert [Int]
 insertUser us now randSalt = Insert
   { iTable = userTable
@@ -152,8 +182,8 @@ insertUser us now randSalt = Insert
   }
 
 updateUserDetails :: Int -> UserDetailsSubmit -> Day -> Update Int64
-updateUserDetails id uds now = Update
-  { uTable = userTable
+updateUserDetails uid uds now = Update
+  { uTable      = userTable
   , uUpdateWith = updateEasy (\(id_, _, i3, _, _, _, i7, i8, _) ->
       ( id_
       , C.constant (userDetailsSubmitIdent uds)
@@ -166,6 +196,28 @@ updateUserDetails id uds now = Update
       , C.constant (fromEnum <$> userDetailsSubmitAlgo uds)
       )
     )
-  , uWhere = (\(i1, _, _, _, _, _, _, _, _) -> i1 .== C.constant id)
-  , uReturning = rCount
+  , uWhere      = (\(i1, _, _, _, _, _, _, _, _) -> i1 .== C.constant uid)
+  , uReturning  = rCount
+  }
+
+addToUserBalance
+  :: Int
+  -> Int
+  -> Update Int64
+addToUserBalance uid amount = Update
+  { uTable      = userTable
+  , uUpdateWith = updateEasy (\(id_, i2, i3, i4, i5, i6, i7, i8, i9) ->
+      ( id_
+      , i2
+      , i3 + C.constant amount
+      , i4
+      , i5
+      , i6
+      , i7
+      , i8
+      , i9
+      )
+    )
+  , uWhere      = (\(i1, _, _, _, _, _, _, _, _) -> i1 .== C.constant uid)
+  , uReturning  = rCount
   }

@@ -38,6 +38,8 @@ type UserAPI =
     :<|> "update" :> AuthProtect "header-auth"
       :> Capture "id" Int :> ReqBody '[JSON] ProductSubmit :> Post '[JSON] ()
     )
+  :<|> "buy" :> AuthProtect "header-auth" :> ReqBody '[JSON] [PurchaseDetail]
+    :> Post '[JSON] PurchaseResult
   :<|> "auth" :> 
     ( "get" :> ReqBody '[JSON] Int :> Post '[JSON] AuthInfo
     :<|> "send" :> ReqBody '[JSON] AuthRequest :> Post '[JSON] AuthResult
