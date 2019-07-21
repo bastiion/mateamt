@@ -9,7 +9,7 @@ import Opaleye as O
 import Opaleye.Constant as C
 
 initAmount :: PGS.Query
-initAmount = foldl (<>) "" $
+initAmount = mconcat
   [ "CREATE TABLE IF NOT EXISTS \"amount\" ("
   , "amounts_product_id BIGINT      NOT NULL REFERENCES product ON DELETE CASCADE,"
   , "amounts_timestamp  TIMESTAMPTZ NOT NULL,"
