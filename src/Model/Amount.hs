@@ -11,12 +11,12 @@ import Opaleye.Constant as C
 initAmount :: PGS.Query
 initAmount = mconcat
   [ "CREATE TABLE IF NOT EXISTS \"amount\" ("
-  , "amounts_product_id BIGINT      NOT NULL REFERENCES product ON DELETE CASCADE,"
-  , "amounts_timestamp  TIMESTAMPTZ NOT NULL,"
-  , "amounts_amount     INTEGER     NOT NULL,"
-  , "amounts_price      INTEGER     NOT NULL,"
-  , "amounts_verified   BOOLEAN     NOT NULL,"
-  , "PRIMARY KEY (product_id, timestamp)"
+  , "amount_product_id BIGINT      NOT NULL REFERENCES \"product\"(\"product_id\") ON DELETE CASCADE,"
+  , "amount_timestamp  TIMESTAMPTZ NOT NULL,"
+  , "amount_amount     INTEGER     NOT NULL,"
+  , "amount_price      INTEGER     NOT NULL,"
+  , "amount_verified   BOOLEAN     NOT NULL,"
+  , "PRIMARY KEY (amount_product_id, amount_timestamp)"
   , ")"
   ]
 
@@ -35,10 +35,10 @@ amountTable :: Table
   )
 amountTable = table "amount" (
   p5
-    ( tableField "amonnts_product_id"
-    , tableField "amounts_timestamp"
-    , tableField "amounts_amount"
-    , tableField "amounts_price"
-    , tableField "amounts_verified"
+    ( tableField "amonnt_product_id"
+    , tableField "amount_timestamp"
+    , tableField "amount_amount"
+    , tableField "amount_price"
+    , tableField "amount_verified"
     )
   )
