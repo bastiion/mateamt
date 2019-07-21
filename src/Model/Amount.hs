@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Model.Amount where
 
 import Data.Profunctor.Product (p5)
@@ -39,3 +40,4 @@ amountTable = table "amount" (
     , tableField "amounts_price"
     , tableField "amounts_verified"
     )
+  )
