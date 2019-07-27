@@ -3,7 +3,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 module Model.User where
 
-import Data.Text as T hiding (head)
+import Data.Text as T hiding (head, foldl)
 import Data.Time.Calendar
 import Data.Time.Clock
 
@@ -11,7 +11,7 @@ import Data.Profunctor.Product (p9)
 
 import Data.Maybe (fromJust, isJust, fromMaybe)
 
-import Data.ByteString hiding (head)
+import Data.ByteString hiding (head, foldl)
 
 import Data.Int (Int64)
 
@@ -34,7 +34,19 @@ import Types.Auth
 import Types.Reader
 
 initUser :: PGS.Query
-initUser = "create table if not exists \"user\" (user_id serial primary key, user_ident varchar(128) not null, user_balance integer not null, user_timestamp date not null, user_email varchar(128), user_avatar integer, user_salt bytea not null, user_hash bytea, user_algo integer)"
+initUser = mconcat
+  [ "create table if not exists \"user\" ("
+  , "user_id serial primary key,"
+  , "user_ident varchar(128) not null,"
+  , "user_balance integer not null,"
+  , "user_timestamp date not null,"
+  , "user_email varchar(128),"
+  , "user_avatar integer,"
+  , "user_salt bytea not null,"
+  , "user_hash bytea,"
+  , "user_algo integer"
+  , ")"
+  ]
 
 userTable :: Table
   ( Maybe (Field SqlInt4)

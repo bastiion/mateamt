@@ -4,7 +4,7 @@ module Model.Product where
 
 import Servant.Server
 
-import Data.Text as T hiding (head)
+import Data.Text as T hiding (head, foldl)
 import Data.Time.Calendar (Day)
 import Data.Profunctor.Product (p13)
 
@@ -31,7 +31,23 @@ import Opaleye.Constant as C
 import Types
 
 initProduct :: PGS.Query
-initProduct = "create Table if not exists \"product\" (product_id serial primary key, product_ident varchar(128) not null, product_price integer not null, product_amount integer not null, product_vanish integer not null, product_ml integer not null, product_avatar integer, product_supplier integer, product_max_amount integer not null, product_total_bought integer not null, product_amount_per_crate integer not null, product_price_per_crate integer, product_art_nr varchar(128))"
+initProduct = mconcat
+  [ "create table if not exists \"product\" ("
+  , "product_id serial primary key,"
+  , "product_ident varchar(128) not null,"
+  , "product_price integer not null,"
+  , "product_amount integer not null,"
+  , "product_vanish integer not null,"
+  , "product_ml integer not null,"
+  , "product_avatar integer,"
+  , "product_supplier integer,"
+  , "product_max_amount integer not null,"
+  , "product_total_bought integer not null,"
+  , "product_amount_per_crate integer not null,"
+  , "product_price_per_crate integer,"
+  , "product_art_nr varchar(128)"
+  , ")"
+  ]
 
 productTable :: Table
   ( Maybe (Field SqlInt4)

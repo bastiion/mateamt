@@ -49,7 +49,13 @@ import Model.User
 
 
 initToken :: PGS.Query
-initToken = "create table if not exists \"token\" (token_string bytea not null primary key, token_user integer references \"user\"(user_id) not null, token_expiry timestamptz not null)"
+initToken = mconcat
+  [ "create table if not exists \"token\" ("
+  , "token_string bytea not null primary key,"
+  , "token_user integer references \"user\"(user_id) not null,"
+  , "token_expiry timestamptz not null"
+  , ")"
+  ]
 
 tokenTable :: Table
   ( Field SqlBytea
