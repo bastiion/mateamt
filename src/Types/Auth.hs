@@ -32,6 +32,7 @@ data AuthInfo = AuthInfo
   deriving (Show, Generic)
 
 instance ToJSON AuthInfo where
+  toEncoding = genericToEncoding defaultOptions
 
 instance FromJSON AuthInfo
 

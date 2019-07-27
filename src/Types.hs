@@ -8,3 +8,4 @@ import Types.Refine as T
 import Types.Reader as T
 import Types.User as T
 import Types.Purchase as T
+import Types.Amount as T

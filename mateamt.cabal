@@ -35,6 +35,7 @@ executable mateamt
                      , Types.Refine
                      , Types.User
                      , Types.Purchase
+                     , Types.Amount
   -- other-extensions:
   build-depends:       base ^>=4.12.0.0
                      , servant

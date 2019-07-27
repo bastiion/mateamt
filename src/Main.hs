@@ -161,14 +161,19 @@ products =
     new :: Maybe Int -> ProductSubmit -> MateHandler Int
     new (Just _) bevsub = do
       conn <- rsConnection <$> ask
-      head <$> (liftIO $ runInsert_ conn (insertProduct bevsub))
+      now <- liftIO $ getCurrentTime
+      bevid <- head <$> (liftIO $ runInsert_ conn (insertProduct bevsub))
+      void $ liftIO $ runInsert_ conn (insertNewEmptyAmount bevid now bevsub)
+      return bevid
     new Nothing _ =
       throwError $ err403
 
-    update :: Maybe Int -> Int -> ProductSubmit -> MateHandler ()
-    update (Just _) bid bevsub = do
+    update :: Maybe Int -> Int -> AmountUpdate -> MateHandler ()
+    update (Just _) bid amosub = do
       conn <- rsConnection <$> ask
-      void $ liftIO $ runUpdate_ conn (updateProduct bid bevsub)
+      liftIO $ do
+        now <- getCurrentTime
+        void $ runInsert_ conn (manualProductAmountUpdate amosub now bid)
     update Nothing _ _ =
       throwError $ err403
 
@@ -176,7 +181,7 @@ buy :: Maybe Int -> [PurchaseDetail] -> MateHandler PurchaseResult
 buy (Just auid) pds = do
   conn <- rsConnection <$> ask
   (missing, real) <- foldM (\acc@(ms, rs) pd -> do
-    mmiss <- checkProductAvailability conn pd
+    mmiss <- checkProductAvailability pd conn
     case mmiss of
       Just miss -> return
         ( (pd {pdAmount = miss}):ms
@@ -189,8 +194,13 @@ buy (Just auid) pds = do
     )
     ([], [])
     pds
-  void$ liftIO $ mapM_ (\pd -> runUpdate_ conn (reduceProductAmount pd)) real
-  price <- foldM (\total pd -> fmap (+ total) (getProductPrice pd conn)) 0 real
+  void $ mapM_ (\pd -> postBuyProductAmountUpdate pd conn) real
+  price <- foldM
+    (\total pd ->
+      fmap (+ total) (getLatestTotalPrice pd conn)
+    )
+    0
+    real
   liftIO $ runUpdate_ conn (addToUserBalance auid (-price))
   newBalance <- userBalanceSelect conn auid
   return $ PurchaseResult
@@ -202,7 +212,7 @@ buy (Just auid) pds = do
 buy Nothing pds = do
   conn <- rsConnection <$> ask
   (missing, real) <- foldM (\acc@(ms, rs) pd -> do
-    mmiss <- checkProductAvailability conn pd
+    mmiss <- checkProductAvailability pd conn
     case mmiss of
       Just miss -> return
         ( (pd {pdAmount = miss}):ms
@@ -215,8 +225,15 @@ buy Nothing pds = do
     )
     ([], [])
     pds
-  void $ liftIO $ mapM_ (\pd -> runUpdate_ conn (reduceProductAmount pd)) real
-  price <- foldM (\total pd -> fmap (+ total) (getProductPrice pd conn)) 0 real
+  void $ mapM_
+    (\pd -> postBuyProductAmountUpdate pd conn)
+    real
+  price <- foldM
+    (\total pd ->
+      fmap (+ total) (getLatestTotalPrice pd conn)
+    )
+    0
+    real
   return $ PurchaseResult
     (PayAmount price)
     missing

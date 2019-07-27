@@ -6,7 +6,7 @@ import Servant.Server
 
 import Data.Text as T hiding (head, foldl)
 import Data.Time.Calendar (Day)
-import Data.Profunctor.Product (p13)
+import Data.Profunctor.Product (p10)
 
 import Data.Aeson
 import Data.Aeson.Types
@@ -35,9 +35,9 @@ initProduct = mconcat
   [ "create table if not exists \"product\" ("
   , "product_id serial primary key,"
   , "product_ident varchar(128) not null,"
-  , "product_price integer not null,"
-  , "product_amount integer not null,"
-  , "product_vanish integer not null,"
+  -- , "product_price integer not null,"
+  -- , "product_amount integer not null,"
+  -- , "product_vanish integer not null,"
   , "product_ml integer not null,"
   , "product_avatar integer,"
   , "product_supplier integer,"
@@ -52,9 +52,9 @@ initProduct = mconcat
 productTable :: Table
   ( Maybe (Field SqlInt4)
   , Field SqlText
-  , Field SqlInt4
-  , Field SqlInt4
-  , Field SqlInt4
+  -- , Field SqlInt4
+  -- , Field SqlInt4
+  -- , Field SqlInt4
   , Field SqlInt4
   , FieldNullable SqlInt4
   , FieldNullable SqlInt4
@@ -66,9 +66,9 @@ productTable :: Table
   )
   ( Field SqlInt4
   , Field SqlText
-  , Field SqlInt4
-  , Field SqlInt4
-  , Field SqlInt4
+  -- , Field SqlInt4
+  -- , Field SqlInt4
+  -- , Field SqlInt4
   , Field SqlInt4
   , FieldNullable SqlInt4
   , FieldNullable SqlInt4
@@ -79,12 +79,12 @@ productTable :: Table
   , FieldNullable SqlText
   )
 productTable = table "product" (
-  p13
+  p10
     ( tableField "product_id"
     , tableField "product_ident"
-    , tableField "product_price"
-    , tableField "product_amount"
-    , tableField "product_vanish"
+    -- , tableField "product_price"
+    -- , tableField "product_amount"
+    -- , tableField "product_vanish"
     , tableField "product_ml"
     , tableField "product_avatar"
     , tableField "product_supplier"
@@ -105,9 +105,9 @@ productSelect conn = do
     ) :: MateHandler
         [ ( Int
           , T.Text
-          , Int
-          , Int
-          , Int
+          -- , Int
+          -- , Int
+          -- , Int
           , Int
           , Maybe Int
           , Maybe Int
@@ -119,86 +119,86 @@ productSelect conn = do
           )
         ]
   mapM
-    (\(i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, i12, i13) -> return $
-      Product i1 i2 i3 i4 i5 i6 i7 i8 i9 i10 i11 i12 i13
+    (\(i1, i2, {-i3, i4, i5,-} i6, i7, i8, i9, i10, i11, i12, i13) -> return $
+      Product i1 i2 {-i3 i4 i5-} i6 i7 i8 i9 i10 i11 i12 i13
       )
     bevs
 
 
-getProductPrice
-  :: PurchaseDetail
-  -> PGS.Connection
-  -> MateHandler Int
-getProductPrice (PurchaseDetail bid amount) conn = do
-  when (amount < 0) (
-    throwError $ err406
-      { errBody = "Amounts less or equal zero are not acceptable"
-      }
-    )
-  bevs <- liftIO $ runSelect conn
-    ( keepWhen
-      (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) -> id_ .== C.constant bid) <<<
-        queryTable productTable
-    ) :: MateHandler
-        [ ( Int
-          , T.Text
-          , Int
-          , Int
-          , Int
-          , Int
-          , Maybe Int
-          , Maybe Int
-          , Int
-          , Int
-          , Int
-          , Maybe Int
-          , Maybe T.Text
-          )
-        ]
-  (amount *) <$> head <$> mapM
-    (\(i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, i12, i13) -> return $
-      i3
-      )
-    bevs
+-- getProductPrice
+--   :: PurchaseDetail
+--   -> PGS.Connection
+--   -> MateHandler Int
+-- getProductPrice (PurchaseDetail bid amount) conn = do
+--   when (amount < 0) (
+--     throwError $ err406
+--       { errBody = "Amounts less or equal zero are not acceptable"
+--       }
+--     )
+--   bevs <- liftIO $ runSelect conn
+--     ( keepWhen
+--       (\(id_, _, _, _, _, _, _, _, _, _, _) -> id_ .== C.constant bid) <<<
+--         queryTable productTable
+--     ) :: MateHandler
+--         [ ( Int
+--           , T.Text
+--           -- , Int
+--           -- , Int
+--           , Int
+--           , Int
+--           , Maybe Int
+--           , Maybe Int
+--           , Int
+--           , Int
+--           , Int
+--           , Maybe Int
+--           , Maybe T.Text
+--           )
+--         ]
+--   (amount *) <$> head <$> mapM
+--     (\(i1, i2, {-i3, i4,-} i5, i6, i7, i8, i9, i10, i11, i12, i13) -> return $
+--       i3
+--       )
+--     bevs
 
 
-checkProductAvailability
-  :: PGS.Connection
-  -> PurchaseDetail
-  -> MateHandler (Maybe Int) -- | returns maybe missing amount
-checkProductAvailability conn (PurchaseDetail bid amount) = do
-  when (amount <= 0) $
-    throwError $ err406
-      { errBody = "Amounts less or equal zero are not acceptable"
-      }
-  bevs <- liftIO $ runSelect conn
-    ( keepWhen
-      (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) -> id_ .== C.constant bid) <<<
-        queryTable productTable
-    ) :: MateHandler
-        [ ( Int
-          , T.Text
-          , Int
-          , Int
-          , Int
-          , Int
-          , Maybe Int
-          , Maybe Int
-          , Int
-          , Int
-          , Int
-          , Maybe Int
-          , Maybe T.Text
-          )
-        ]
-  realamount <- head <$> mapM
-    (\(i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, i12, i13) -> return $
-      i4
-      )
-    bevs
-  if realamount < amount
-  then return (Just (amount - realamount))
-  else return Nothing
+-- checkProductAvailability
+--   :: PGS.Connection
+--   -> PurchaseDetail
+--   -> MateHandler (Maybe Int) -- | returns maybe missing amount
+-- checkProductAvailability conn (PurchaseDetail bid amount) = do
+--   when (amount <= 0) $
+--     throwError $ err406
+--       { errBody = "Amounts less or equal zero are not acceptable"
+--       }
+--   bevs <- liftIO $ runSelect conn
+--     ( keepWhen
+--       (\(id_, _, _, _, _, _, _, _, _, _, _) -> id_ .== C.constant bid) <<<
+--         queryTable productTable
+--     ) :: MateHandler
+--         [ ( Int
+--           , T.Text
+--           , Int
+--           -- , Int
+--           -- , Int
+--           , Int
+--           , Maybe Int
+--           , Maybe Int
+--           , Int
+--           , Int
+--           , Int
+--           , Maybe Int
+--           , Maybe T.Text
+--           )
+--         ]
+--   realamount <- head <$> mapM
+--     (\(i1, i2, i3, {-i4, i5,-} i6, i7, i8, i9, i10, i11, i12, i13) -> return $
+--       i4
+--       )
+--     bevs
+--   if realamount < amount
+--   then return (Just (amount - realamount))
+--   else return Nothing
 
 
 insertProduct
@@ -210,9 +210,9 @@ insertProduct (ProductSubmit ident price ml ava sup max apc ppc artnr) = Insert
     [
     ( C.constant (Nothing :: Maybe Int)
     , C.constant ident
-    , C.constant price
-    , C.constant (0 :: Int)
-    , C.constant (0 :: Int)
+    -- , C.constant price
+    -- , C.constant (0 :: Int)
+    -- , C.constant (0 :: Int)
     , C.constant ml
     , C.constant ava
     , C.constant sup
@@ -223,65 +223,65 @@ insertProduct (ProductSubmit ident price ml ava sup max apc ppc artnr) = Insert
     , C.constant artnr
     )
     ]
-  , iReturning = rReturning (\(id, _, _, _, _, _, _, _, _, _, _, _, _) -> id)
+  , iReturning = rReturning (\(id, _, _, _, _, _, _, _, _, _) -> id)
   , iOnConflict = Nothing
   }
 
 
-updateProduct
-  :: Int
-  -> ProductSubmit
-  -> Update Int64
-updateProduct sid (ProductSubmit ident price ml ava sup max apc ppc artnr) = Update
-  { uTable      = productTable
-  , uUpdateWith = updateEasy (\(id_, _, _, amo, van, _, _, _, _, tot, _, _, _) ->
-      ( id_
-      , C.constant ident
-      , C.constant price
-      , amo
-      , van
-      , C.constant ml
-      , C.constant ava
-      , C.constant sup
-      , C.constant max
-      , tot
-      , C.constant apc
-      , C.constant ppc
-      , C.constant artnr
-      )
-    )
-  , uWhere      =
-    (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) ->
-      id_ .== C.constant sid
-    )
-  , uReturning = rCount
-  }
+-- updateProduct
+--   :: Int
+--   -> ProductSubmit
+--   -> Update Int64
+-- updateProduct sid (ProductSubmit ident price ml ava sup max apc ppc artnr) = Update
+--   { uTable      = productTable
+--   , uUpdateWith = updateEasy (\(id_, _, _, amo, van, _, _, _, _, tot, _, _, _) ->
+--       ( id_
+--       , C.constant ident
+--       , C.constant price
+--       , amo
+--       , van
+--       , C.constant ml
+--       , C.constant ava
+--       , C.constant sup
+--       , C.constant max
+--       , tot
+--       , C.constant apc
+--       , C.constant ppc
+--       , C.constant artnr
+--       )
+--     )
+--   , uWhere      =
+--     (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) ->
+--       id_ .== C.constant sid
+--     )
+--   , uReturning = rCount
+--   }
 
-reduceProductAmount
-  :: PurchaseDetail
-  -> Update Int64
-reduceProductAmount (PurchaseDetail pid amount) = Update
-  { uTable      = productTable
-  , uUpdateWith = updateEasy
-    (\(id_, ident, price, amo, van, ml, ava, sup, max, tot, apc, ppc, artnr) ->
-      ( id_
-      , ident
-      , price
-      , amo - C.constant amount
-      , van
-      , ml
-      , ava
-      , sup
-      , max
-      , tot + C.constant amount
-      , apc
-      , ppc
-      , artnr
-      )
-    )
-  , uWhere      = 
-    (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) ->
-      id_ .== C.constant pid
-    )
-  , uReturning = rCount
-  }
+-- reduceProductAmount
+--   :: PurchaseDetail
+--   -> Update Int64
+-- reduceProductAmount (PurchaseDetail pid amount) = Update
+--   { uTable      = productTable
+--   , uUpdateWith = updateEasy
+--     (\(id_, ident, price, amo, van, ml, ava, sup, max, tot, apc, ppc, artnr) ->
+--       ( id_
+--       , ident
+--       , price
+--       , amo - C.constant amount
+--       , van
+--       , ml
+--       , ava
+--       , sup
+--       , max
+--       , tot + C.constant amount
+--       , apc
+--       , ppc
+--       , artnr
+--       )
+--     )
+--   , uWhere      = 
+--     (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) ->
+--       id_ .== C.constant pid
+--     )
+--   , uReturning = rCount
+--   }

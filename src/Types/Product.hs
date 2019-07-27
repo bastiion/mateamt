@@ -10,9 +10,9 @@ import qualified Data.Text as T
 data Product = Product
   { productId             :: Int
   , productIdent          :: T.Text
-  , productPrice          :: Int
-  , productAmount         :: Int
-  , productVanish         :: Int
+  -- , productPrice          :: Int
+  -- , productAmount         :: Int
+  -- , productVanish         :: Int
   , productMl             :: Int
   , productAvatar         :: Maybe Int
   , productSupplier       :: Maybe Int
