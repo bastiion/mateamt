@@ -35,7 +35,7 @@ amountTable :: Table
   )
 amountTable = table "amount" (
   p5
-    ( tableField "amonnt_product_id"
+    ( tableField "amount_product_id"
     , tableField "amount_timestamp"
     , tableField "amount_amount"
     , tableField "amount_price"
