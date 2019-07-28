@@ -58,21 +58,23 @@ insertNewEmptyAmount
   :: Int           -- | the associated product id
   -> UTCTime       -- | current time
   -> ProductSubmit -- | submitted product data
-  -> Insert [Int]
-insertNewEmptyAmount bevid now (ProductSubmit _ price _ _ _ _ _ _ _) = Insert
-  { iTable = amountTable
-  , iRows  =
-    [
-    ( C.constant bevid
-    , C.constant now
-    , C.constant (0 :: Int)
-    , C.constant price
-    , C.constant False
-    )
-    ]
-  , iReturning = rReturning (\(id_, _, _, _, _) -> id_)
-  , iOnConflict = Nothing
-  }
+  -> PGS.Connection
+  -> MateHandler Int
+insertNewEmptyAmount bevid now (ProductSubmit _ price _ _ _ _ _ _ _) conn =
+  fmap head $ liftIO $ runInsert_ conn $ Insert
+    { iTable = amountTable
+    , iRows  =
+      [
+      ( C.constant bevid
+      , C.constant now
+      , C.constant (0 :: Int)
+      , C.constant price
+      , C.constant False
+      )
+      ]
+    , iReturning = rReturning (\(id_, _, _, _, _) -> id_)
+    , iOnConflict = Nothing
+    }
 
 getLatestPriceByProductId
   :: Int             -- The associated Product ID
@@ -142,21 +144,23 @@ manualProductAmountUpdate
   :: AmountUpdate
   -> UTCTime      -- Current time
   -> Int          -- Old BeveragePrice
-  -> Insert [Int]
-manualProductAmountUpdate (AmountUpdate pid amount) now oldprice = Insert
-  { iTable = amountTable
-  , iRows  =
-    [
-    ( C.constant pid
-    , C.constant now
-    , C.constant amount
-    , C.constant oldprice
-    , C.constant True
-    )
-    ]
-  , iReturning = rReturning (\(id_, _, _, _, _) -> id_)
-  , iOnConflict = Nothing
-  }
+  -> PGS.Connection
+  -> MateHandler Int
+manualProductAmountUpdate (AmountUpdate pid amount) now oldprice conn =
+  fmap head $ liftIO $ runInsert_ conn $ Insert
+    { iTable = amountTable
+    , iRows  =
+      [
+      ( C.constant pid
+      , C.constant now
+      , C.constant amount
+      , C.constant oldprice
+      , C.constant True
+      )
+      ]
+    , iReturning = rReturning (\(id_, _, _, _, _) -> id_)
+    , iOnConflict = Nothing
+    }
 
 postBuyProductAmountUpdate
   :: PurchaseDetail

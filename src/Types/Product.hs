@@ -17,7 +17,7 @@ data Product = Product
   , productAvatar         :: Maybe Int
   , productSupplier       :: Maybe Int
   , productMaxAmount      :: Int
-  , productTotalBought    :: Int
+  -- , productTotalBought    :: Int
   , productAmountPerCrate :: Int
   , productPricePerCrate  :: Maybe Int
   , productArtNr          :: Maybe T.Text
@@ -27,6 +27,28 @@ instance ToJSON Product where
   toEncoding = genericToEncoding defaultOptions
 
 instance FromJSON Product
+
+
+data ProductOverview = ProductOverview
+  { productOverviewId             :: Int
+  , productOverviewIdent          :: T.Text
+  , productOverviewPrice          :: Int
+  , productOverviewAmount         :: Int
+  , productOverviewVanish         :: Int
+  , productOverviewMl             :: Int
+  , productOverviewAvatar         :: Maybe Int
+  , productOverviewSupplier       :: Maybe Int
+  , productOverviewMaxAmount      :: Int
+  , productOverviewTotalBought    :: Int
+  , productOverviewAmountPerCrate :: Int
+  , productOverviewPricePerCrate  :: Maybe Int
+  , productOverviewArtNr          :: Maybe T.Text
+  } deriving (Generic, Show)
+
+instance ToJSON ProductOverview where
+  toEncoding = genericToEncoding defaultOptions
+
+instance FromJSON ProductOverview
 
 
 data ProductSubmit = ProductSubmit

@@ -173,8 +173,13 @@ userBalanceSelect conn id = do
     users
 
 
-insertUser :: UserSubmit -> Day -> ByteString -> Insert [Int]
-insertUser us now randSalt = Insert
+insertUser
+  :: UserSubmit
+  -> Day
+  -> ByteString
+  -> PGS.Connection
+  -> MateHandler Int
+insertUser us now randSalt conn = fmap head $ liftIO $ runInsert_ conn $ Insert
   { iTable = userTable
   , iRows  =
     [
@@ -193,8 +198,13 @@ insertUser us now randSalt = Insert
   , iOnConflict = Nothing
   }
 
-updateUserDetails :: Int -> UserDetailsSubmit -> Day -> Update Int64
-updateUserDetails uid uds now = Update
+updateUserDetails
+  :: Int
+  -> UserDetailsSubmit
+  -> Day
+  -> PGS.Connection
+  -> MateHandler Int64
+updateUserDetails uid uds now conn = liftIO $ runUpdate_ conn $ Update
   { uTable      = userTable
   , uUpdateWith = updateEasy (\(id_, _, i3, _, _, _, i7, i8, _) ->
       ( id_
@@ -215,8 +225,9 @@ updateUserDetails uid uds now = Update
 addToUserBalance
   :: Int
   -> Int
-  -> Update Int64
-addToUserBalance uid amount = Update
+  -> PGS.Connection
+  -> MateHandler Int64
+addToUserBalance uid amount conn = liftIO $ runUpdate_ conn $ Update
   { uTable      = userTable
   , uUpdateWith = updateEasy (\(id_, i2, i3, i4, i5, i6, i7, i8, i9) ->
       ( id_

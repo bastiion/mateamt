@@ -113,7 +113,7 @@ users =
       now <- liftIO $ getCurrentTime
       randSalt <- liftIO $ random 8
       conn <- rsConnection <$> ask
-      head <$> (liftIO $ runInsert_ conn (insertUser us (utctDay now) randSalt))
+      insertUser us (utctDay now) randSalt conn
 
     userGetUpdate :: Maybe Int -> Int -> MateHandler UserDetails
     userGetUpdate Nothing _ =
@@ -142,7 +142,7 @@ users =
       then do
         now <- liftIO $ getCurrentTime
         conn <- rsConnection <$> ask
-        void $ liftIO $ runUpdate_ conn (updateUserDetails id uds (utctDay now))
+        void $ updateUserDetails id uds (utctDay now) conn
       else
         throwError $ err403
           { errBody = "Wrong Authentication present"
@@ -153,28 +153,28 @@ products =
   new :<|>
   update
   where
-    list :: MateHandler [Product]
+    list :: MateHandler [ProductOverview]
     list = do
       conn <- rsConnection <$> ask
-      productSelect conn
+      productOverviewSelect conn
 
     new :: Maybe Int -> ProductSubmit -> MateHandler Int
     new (Just _) bevsub = do
       conn <- rsConnection <$> ask
       now <- liftIO $ getCurrentTime
-      bevid <- head <$> (liftIO $ runInsert_ conn (insertProduct bevsub))
-      void $ liftIO $ runInsert_ conn (insertNewEmptyAmount bevid now bevsub)
+      bevid <- insertProduct bevsub conn
+      void $ insertNewEmptyAmount bevid now bevsub conn
       return bevid
     new Nothing _ =
       throwError $ err403
 
-    update :: Maybe Int -> Int -> AmountUpdate -> MateHandler ()
-    update (Just _) bid amosub = do
+    update :: Maybe Int -> AmountUpdate -> MateHandler ()
+    update (Just _) amosub@(AmountUpdate pid amount) = do
       conn <- rsConnection <$> ask
-      liftIO $ do
-        now <- getCurrentTime
-        void $ runInsert_ conn (manualProductAmountUpdate amosub now bid)
-    update Nothing _ _ =
+      now <- liftIO $ getCurrentTime
+      oldprice <- getLatestPriceByProductId pid conn
+      void $ manualProductAmountUpdate amosub now oldprice conn
+    update Nothing _ =
       throwError $ err403
 
 buy :: Maybe Int -> [PurchaseDetail] -> MateHandler PurchaseResult
@@ -184,8 +184,8 @@ buy (Just auid) pds = do
     mmiss <- checkProductAvailability pd conn
     case mmiss of
       Just miss -> return
-        ( (pd {pdAmount = miss}):ms
-        , (pd {pdAmount = max 0 (pdAmount pd - miss)}:rs)
+        ( (pd {purchaseDetailAmount = miss}):ms
+        , (pd {purchaseDetailAmount = max 0 (purchaseDetailAmount pd - miss)}:rs)
         )
       Nothing -> return
         ( ms
@@ -201,7 +201,7 @@ buy (Just auid) pds = do
     )
     0
     real
-  liftIO $ runUpdate_ conn (addToUserBalance auid (-price))
+  addToUserBalance auid (-price) conn
   newBalance <- userBalanceSelect conn auid
   return $ PurchaseResult
     ( if newBalance < 0
@@ -215,8 +215,8 @@ buy Nothing pds = do
     mmiss <- checkProductAvailability pd conn
     case mmiss of
       Just miss -> return
-        ( (pd {pdAmount = miss}):ms
-        , (pd {pdAmount = max 0 (pdAmount pd - miss)}:rs)
+        ( (pd {purchaseDetailAmount = miss}):ms
+        , (pd {purchaseDetailAmount = max 0 (purchaseDetailAmount pd - miss)}:rs)
         )
       Nothing -> return
         ( ms

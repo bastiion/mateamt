@@ -32,11 +32,11 @@ type UserAPI =
       :> Capture "id" Int :> ReqBody '[JSON] UserDetailsSubmit :> Post '[JSON] ()
     )
   :<|> "product" :>
-    ( "list" :> Get '[JSON] [Product]
+    ( "list" :> Get '[JSON] [ProductOverview]
     :<|> "new" :> AuthProtect "header-auth" :> ReqBody '[JSON] ProductSubmit
       :> Post '[JSON] Int
     :<|> "update" :> AuthProtect "header-auth"
-      :> Capture "id" Int :> ReqBody '[JSON] AmountUpdate :> Post '[JSON] ()
+      :> ReqBody '[JSON] AmountUpdate :> Post '[JSON] ()
     )
   :<|> "buy" :> AuthProtect "header-auth" :> ReqBody '[JSON] [PurchaseDetail]
     :> Post '[JSON] PurchaseResult

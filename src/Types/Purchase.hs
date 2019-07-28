@@ -10,8 +10,8 @@ import GHC.Generics
 
 
 data PurchaseDetail = PurchaseDetail
-  { pdBeverage :: Int
-  , pdAmount   :: Int
+  { purchaseDetailBeverage :: Int
+  , purchaseDetailAmount   :: Int
   }
   deriving (Generic, Show)
 
@@ -22,8 +22,8 @@ instance FromJSON PurchaseDetail
 
 
 data PurchaseResult = PurchaseResult
-  { prFlag         :: PurchaseResultFlag
-  , prMissingItems :: [PurchaseDetail]
+  { purchaseResultFlag         :: PurchaseResultFlag
+  , purchaseResultMissingItems :: [PurchaseDetail]
   }
   deriving (Generic, Show)
 

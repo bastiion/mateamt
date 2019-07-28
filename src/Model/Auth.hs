@@ -128,9 +128,8 @@ validateToken conn header = do
       if diffUTCTime stamp now > 0
       then return $ Just uid
       else do
-        liftIO $ do
-           void $ forkIO $ void $ runDelete_ conn (deleteToken header)
-           threadDelay $ 1 * 10 ^ 6
+        void $ deleteToken header conn
+        liftIO $ threadDelay $ 1 * 10 ^ 6
         throwError $ err401
           { errBody = "Your token expired!"
           }
@@ -169,7 +168,7 @@ generateToken (Ticket _ ident exp) (AuthHash hash) = do
       <$> (random 23)
       <*> (pure ident)
       <*> (addUTCTime (23*60) <$> getCurrentTime)
-    void $ liftIO $ runInsert_ conn (insertToken token)
+    void $ insertToken token conn
     return $ Granted (AuthToken $ tokenString token)
   else
     return Denied
@@ -177,35 +176,40 @@ generateToken (Ticket _ ident exp) (AuthHash hash) = do
 
 insertToken
   :: Token
-  -> Insert [ByteString]
-insertToken (Token tString tUser tExpiry) = Insert
-  { iTable = tokenTable
-  , iRows =
-    [
-    ( C.constant tString
-    , C.constant tUser
-    , C.constant tExpiry
-    )
-    ]
-  , iReturning = rReturning (\(ident, _, _) -> ident)
-  , iOnConflict = Nothing
-  }
+  -> PGS.Connection
+  -> MateHandler ByteString
+insertToken (Token tString tUser tExpiry) conn =
+  fmap head $ liftIO $ runInsert_ conn $ Insert
+    { iTable = tokenTable
+    , iRows =
+      [
+      ( C.constant tString
+      , C.constant tUser
+      , C.constant tExpiry
+      )
+      ]
+    , iReturning = rReturning (\(ident, _, _) -> ident)
+    , iOnConflict = Nothing
+    }
 
 
 deleteToken
   :: ByteString
-  -> Opaleye.Delete Int64
-deleteToken tstr = Delete
-  { dTable     = tokenTable
-  , dWhere     = (\(rtstr, _, _) -> rtstr .== C.constant tstr)
-  , dReturning = rCount
-  }
+  -> PGS.Connection
+  -> Handler Int64
+deleteToken tstr conn =
+  liftIO $ runDelete_ conn $ Delete
+    { dTable     = tokenTable
+    , dWhere     = (\(rtstr, _, _) -> rtstr .== C.constant tstr)
+    , dReturning = rCount
+    }
 
 
 deleteTokenByUserId
   :: Int
-  -> Opaleye.Delete Int64
-deleteTokenByUserId uid = Delete
+  -> PGS.Connection
+  -> MateHandler Int64
+deleteTokenByUserId uid conn = liftIO $ runDelete_ conn $ Delete
   { dTable     = tokenTable
   , dWhere     = (\(_, rid, _) -> rid .== C.constant uid)
   , dReturning = rCount
@@ -262,4 +266,4 @@ processLogout
   -> MateHandler ()
 processLogout uid = do
   conn <- rsConnection <$> ask
-  liftIO $ void $ runDelete_ conn (deleteTokenByUserId uid)
+  void $ deleteTokenByUserId uid conn
