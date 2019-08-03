@@ -149,14 +149,22 @@ users =
           }
 
 products =
-  list :<|>
+  listShort :<|>
+  listLong :<|>
   new :<|>
   update
   where
-    list :: MateHandler [ProductOverview]
-    list = do
+    listShort :: MateHandler [ProductShortOverview]
+    listShort = do
+      conn <- rsConnection <$> ask
+      productShortOverviewSelect conn
+
+    listLong :: Maybe Int -> MateHandler [ProductOverview]
+    listLong (Just _) = do
       conn <- rsConnection <$> ask
       productOverviewSelect conn
+    listLong Nothing =
+      throwError $ err403
 
     new :: Maybe Int -> ProductSubmit -> MateHandler Int
     new (Just _) bevsub = do

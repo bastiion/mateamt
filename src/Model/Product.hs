@@ -193,6 +193,69 @@ productOverviewSelect conn = do
     bevs
 
 
+productShortOverviewSelect
+  :: PGS.Connection
+  -> MateHandler [ProductShortOverview]
+productShortOverviewSelect conn = do
+  bevs <- liftIO $ runSelect conn
+    ( proc () -> do
+        (i1, i2, i6, i7, i8, i9, i11, i12, i13) <- queryTable productTable -< ()
+        returnA -< (i1, i2, i6, i7, i8, i9, i11, i12, i13)
+    ) :: MateHandler
+        [ ( Int
+          , T.Text
+          -- , Int
+          -- , Int
+          -- , Int
+          , Int
+          , Maybe Int
+          , Maybe Int
+          , Int
+          -- , Int
+          , Int
+          , Maybe Int
+          , Maybe T.Text
+          )
+        ]
+  mapM
+    (\(i1, i2, {-i3, i4, i5,-} i6, i7, i8, i9, {-i10,-} i11, i12, i13) -> do
+      amounts <- liftIO $ runSelect conn
+        ( proc () -> do
+          stuff@(a1, _, _, _, _) <- orderBy (desc (\(_, ts, _, _, _) -> ts))
+            (queryTable amountTable) -< ()
+          restrict -< C.constant i1 .== a1
+          returnA -< stuff
+          ) :: MateHandler
+              [ ( Int
+                , UTCTime
+                , Int
+                , Int
+                , Bool
+                )
+              ]
+      (i3, i4) <- return $ (\(_, _, y, x, _) -> (x, y)) $ head amounts
+      i5 <- return $ (\(_, x) -> x) $
+        foldl
+          (\(bef, van) (_, _, amo, _, ver) ->
+            if ver
+            then (amo, if amo < bef then van + (bef - amo) else van)
+            else (amo, van)
+            )
+          (0, 0)
+          (Prelude.reverse amounts)
+      i10 <- return $ snd $ foldl (\(bef, tot) (_, _, amo, _, ver) ->
+        if ver
+        then (amo, tot)
+        else (amo, tot + (bef - amo))
+        )
+        (0, 0)
+        (Prelude.reverse amounts)
+      return $ ProductShortOverview
+        i1 i2 i3 i4 i6 i7
+      )
+    bevs
+
+
 -- getProductPrice
 --   :: PurchaseDetail
 --   -> PGS.Connection

@@ -51,6 +51,28 @@ instance ToJSON ProductOverview where
 instance FromJSON ProductOverview
 
 
+data ProductShortOverview = ProductShortOverview
+  { productShortOverviewId             :: Int
+  , productShortOverviewIdent          :: T.Text
+  , productShortOverviewPrice          :: Int
+  , productShortOverviewAmount         :: Int
+  -- , productShortOverviewVanish         :: Int
+  , productShortOverviewMl             :: Int
+  , productShortOverviewAvatar         :: Maybe Int
+  -- , productShortOverviewSupplier       :: Maybe Int
+  -- , productShortOverviewMaxAmount      :: Int
+  -- , productShortOverviewTotalBought    :: Int
+  -- , productShortOverviewAmountPerCrate :: Int
+  -- , productShortOverviewPricePerCrate  :: Maybe Int
+  -- , productShortOverviewArtNr          :: Maybe T.Text
+  } deriving (Generic, Show)
+
+instance ToJSON ProductShortOverview where
+  toEncoding = genericToEncoding defaultOptions
+
+instance FromJSON ProductShortOverview
+
+
 data ProductSubmit = ProductSubmit
   { productSubmitIdent          :: T.Text
   , productSubmitPrice          :: Int
