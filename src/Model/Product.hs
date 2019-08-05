@@ -26,7 +26,7 @@ import qualified Database.PostgreSQL.Simple as PGS
 
 import GHC.Generics
 
-import Opaleye as O
+import Opaleye as O hiding (max)
 import Opaleye.Constant as C
 
 -- internal imports
@@ -183,7 +183,7 @@ productOverviewSelect conn = do
       i10 <- return $ snd $ foldl (\(bef, tot) (_, _, amo, _, ver) ->
         if ver
         then (amo, tot)
-        else (amo, tot + (bef - amo))
+        else (amo, tot + max 0 (bef - amo))
         )
         (0, 0)
         (Prelude.reverse amounts)
