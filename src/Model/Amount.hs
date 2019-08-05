@@ -96,6 +96,27 @@ getLatestPriceByProductId pid conn = do
     (\(_, _, _, price, _) -> return price)
     amounts
 
+getLatestAmountByProductId
+  :: Int             -- The associated Product ID
+  -> PGS.Connection
+  -> MateHandler Int -- The amount
+getLatestAmountByProductId pid conn = do
+  amounts <- liftIO $ runSelect conn $
+    orderBy (desc (\(_, ts, _, _, _) -> ts))
+      (keepWhen (\(id_, _, _, _, _) -> id_ .== C.constant pid) <<< queryTable amountTable)
+    :: MateHandler
+      [ ( Int
+        , UTCTime
+        , Int
+        , Int
+        , Bool
+        )
+      ]
+  head <$> return ( map
+    (\(_, _, amount, _, _) -> amount)
+    amounts
+    )
+
 getLatestTotalPrice
   :: PurchaseDetail  -- The associated PurchaseDetail
   -> PGS.Connection
@@ -113,9 +134,10 @@ getLatestTotalPrice (PurchaseDetail pid amount) conn = do
         , Bool
         )
       ]
-  (amount *) <$> head <$> mapM
-    (\(_, _, _, price, _) -> return price)
+  (amount *) <$> head <$> return (map
+    (\(_, _, _, price, _) -> price)
     amounts
+    )
 
 checkProductAvailability
   :: PurchaseDetail
@@ -140,27 +162,65 @@ checkProductAvailability (PurchaseDetail pid amount) conn = do
   then return (Just $ amount - realamount)
   else return Nothing
 
+
 manualProductAmountUpdate
-  :: AmountUpdate
-  -> UTCTime      -- Current time
-  -> Int          -- Old BeveragePrice
+  :: [AmountUpdate]
   -> PGS.Connection
-  -> MateHandler Int
-manualProductAmountUpdate (AmountUpdate pid amount) now oldprice conn =
-  fmap head $ liftIO $ runInsert_ conn $ Insert
-    { iTable = amountTable
-    , iRows  =
-      [
-      ( C.constant pid
-      , C.constant now
-      , C.constant amount
-      , C.constant oldprice
-      , C.constant True
+  -> MateHandler [Int]
+manualProductAmountUpdate aups conn =
+  mapM
+    (\(AmountUpdate pid amount) -> do
+      oldprice <- getLatestPriceByProductId pid conn
+      head <$> (liftIO $ do
+        now <- getCurrentTime
+        runInsert_ conn $ Insert
+          { iTable = amountTable
+          , iRows  =
+            [
+            ( C.constant pid
+            , C.constant now
+            , C.constant amount
+            , C.constant oldprice
+            , C.constant True
+            )
+            ]
+          , iReturning = rReturning (\(id_, _, _, _, _) -> id_)
+          , iOnConflict = Nothing
+          }
+        )
       )
-      ]
-    , iReturning = rReturning (\(id_, _, _, _, _) -> id_)
-    , iOnConflict = Nothing
-    }
+    aups
+
+
+manualProductAmountRefill
+  :: [AmountRefill]
+  -> PGS.Connection
+  -> MateHandler [Int]
+manualProductAmountRefill aups conn =
+  mapM
+    (\(AmountRefill pid amount) -> do
+      oldamount <- getLatestAmountByProductId pid conn
+      oldprice <- getLatestPriceByProductId pid conn
+      head <$> (liftIO $ do
+        now <- getCurrentTime
+        runInsert_ conn $ Insert
+          { iTable = amountTable
+          , iRows  =
+            [
+            ( C.constant pid
+            , C.constant now
+            , C.constant (oldamount + amount)
+            , C.constant oldprice
+            , C.constant False
+            )
+            ]
+          , iReturning = rReturning (\(id_, _, _, _, _) -> id_)
+          , iOnConflict = Nothing
+          }
+        )
+      )
+    aups
+
 
 postBuyProductAmountUpdate
   :: PurchaseDetail

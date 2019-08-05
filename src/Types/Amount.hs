@@ -15,3 +15,15 @@ instance ToJSON AmountUpdate where
   toEncoding = genericToEncoding defaultOptions
 
 instance FromJSON AmountUpdate
+
+
+data AmountRefill = AmountRefill
+  { amountRefillProductId  :: Int
+  , amountRefillAmount     :: Int
+  }
+  deriving (Show, Generic)
+
+instance ToJSON AmountRefill where
+  toEncoding = genericToEncoding defaultOptions
+
+instance FromJSON AmountRefill

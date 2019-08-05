@@ -149,22 +149,15 @@ users =
           }
 
 products =
-  listShort :<|>
   listLong :<|>
   new :<|>
-  update
+  stockUpdate :<|>
+  stockRefill
   where
-    listShort :: MateHandler [ProductShortOverview]
-    listShort = do
-      conn <- rsConnection <$> ask
-      productShortOverviewSelect conn
-
-    listLong :: Maybe Int -> MateHandler [ProductOverview]
-    listLong (Just _) = do
+    listLong :: MateHandler [ProductOverview]
+    listLong = do
       conn <- rsConnection <$> ask
       productOverviewSelect conn
-    listLong Nothing =
-      throwError $ err403
 
     new :: Maybe Int -> ProductSubmit -> MateHandler Int
     new (Just _) bevsub = do
@@ -176,14 +169,36 @@ products =
     new Nothing _ =
       throwError $ err403
 
-    update :: Maybe Int -> AmountUpdate -> MateHandler ()
-    update (Just _) amosub@(AmountUpdate pid amount) = do
-      conn <- rsConnection <$> ask
-      now <- liftIO $ getCurrentTime
-      oldprice <- getLatestPriceByProductId pid conn
-      void $ manualProductAmountUpdate amosub now oldprice conn
-    update Nothing _ =
+    stockUpdate :: Maybe Int -> [AmountUpdate] -> MateHandler ()
+    stockUpdate (Just _) amoups = do
+      if all ((>= 0) . amountUpdateRealAmount) amoups
+      then do
+        conn <- rsConnection <$> ask
+        void $ manualProductAmountUpdate amoups conn
+      else
+        throwError $ err406
+          { errBody = "Amounts less than 0 are not acceptable"
+          }
+    stockUpdate Nothing _ =
       throwError $ err403
+        { errBody = "No Authentication present"
+        }
+
+    stockRefill :: Maybe Int -> [AmountRefill] -> MateHandler ()
+    stockRefill (Just _) amorefs = do
+      if all ((>= 0) . amountRefillAmount) amorefs
+      then do
+        conn <- rsConnection <$> ask
+        void $ manualProductAmountRefill amorefs conn
+      else
+        throwError $ err406
+          { errBody = "Amounts less than 0 are not acceptable"
+          }
+    stockRefill Nothing _ =
+      throwError $ err403
+        { errBody = "No Authentication present"
+        }
+
 
 buy :: Maybe Int -> [PurchaseDetail] -> MateHandler PurchaseResult
 buy (Just auid) pds = do
