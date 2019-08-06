@@ -22,29 +22,27 @@ import Model as M
 import Types
 
 type UserAPI =
-  "user" :>
-    ( "list" :> AuthProtect "header-auth"
-      :> QueryParam "refine" Refine :> Get '[JSON] [User]
-    :<|> "new" :> ReqBody '[JSON] UserSubmit :> Post '[JSON] Int
-    :<|> "details" :> AuthProtect "header-auth"
-      :> Capture "id" Int :> Get '[JSON] UserDetails
-    :<|> "details" :> AuthProtect "header-auth"
-      :> Capture "id" Int :> ReqBody '[JSON] UserDetailsSubmit :> Post '[JSON] ()
-    )
-  :<|> "product" :>
-    ( "list" :> Get '[JSON] [ProductOverview]
-    :<|> "new" :> AuthProtect "header-auth" :> ReqBody '[JSON] ProductSubmit
-      :> Post '[JSON] Int
-    :<|> "update" :> AuthProtect "header-auth"
-      :> ReqBody '[JSON] [AmountUpdate] :> Post '[JSON] ()
-    :<|> "refill" :> AuthProtect "header-auth"
-      :> ReqBody '[JSON] [AmountRefill] :> Post '[JSON] ()
-    )
+  "auth" :> Capture "uid" Int :> Get '[JSON] AuthInfo
+  :<|> "auth" :> ReqBody '[JSON] AuthRequest :> Post '[JSON] AuthResult
+  :<|> "auth" :> AuthProtect "header-auth" :> ReqBody '[JSON] Int
+    :> Delete '[JSON] ()
+
+  :<|> "user" :> ReqBody '[JSON] UserSubmit :> Post '[JSON] Int
+  :<|> "user" :> AuthProtect "header-auth"
+    :> Capture "uid'" Int :> Get '[JSON] UserDetails
+  :<|> "user" :> AuthProtect "header-auth"
+    :> Capture "uid'" Int :> ReqBody '[JSON] UserDetailsSubmit :> Patch '[JSON] ()
+  :<|> "user" :> "list" :> AuthProtect "header-auth"
+    :> QueryParam "refine" Refine :> Get '[JSON] [User]
+
+  :<|> "product" :> AuthProtect "header-auth" :> ReqBody '[JSON] ProductSubmit
+    :> Post '[JSON] Int
+  :<|> "product" :> Capture "pid" Int :> Get '[JSON] ProductOverview
+  :<|> "product" :> AuthProtect "header-auth"
+    :> ReqBody '[JSON] [AmountRefill] :> Patch '[JSON] ()
+  :<|> "product" :> AuthProtect "header-auth"
+    :> ReqBody '[JSON] [AmountUpdate] :> Put '[JSON] ()
+  :<|> "product" :> "list" :> Get '[JSON] [ProductOverview]
+
   :<|> "buy" :> AuthProtect "header-auth" :> ReqBody '[JSON] [PurchaseDetail]
     :> Post '[JSON] PurchaseResult
-  :<|> "auth" :> 
-    ( "get" :> ReqBody '[JSON] Int :> Post '[JSON] AuthInfo
-    :<|> "send" :> ReqBody '[JSON] AuthRequest :> Post '[JSON] AuthResult
-    :<|> "logout" :> AuthProtect "header-auth" :> ReqBody '[JSON] Int
-      :> Post '[JSON] ()
-    )

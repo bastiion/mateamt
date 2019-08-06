@@ -65,10 +65,22 @@ app initState =
       userApi
       authProxy
       (`runReaderT` initState)
-      ( users :<|>
-        products :<|>
-        buy :<|>
-        auth
+      ( authGet :<|>
+        authSend :<|>
+        authLogout :<|>
+
+        userNew :<|>
+        userGet :<|>
+        userUpdate :<|>
+        userList :<|>
+
+        productNew :<|>
+        productOverview :<|>
+        productStockRefill :<|>
+        productStockUpdate :<|>
+        productList :<|>
+
+        buy
       )
 
 userApi :: Proxy UserAPI
@@ -97,110 +109,126 @@ authHandler conn = mkAuthHandler handler
           return Nothing
       return res
 
-users =
-  userList :<|>
-  userNew :<|>
-  userGetUpdate :<|>
-  userPostUpdate
-  where
-    userList :: Maybe Int -> Maybe Refine -> MateHandler [User]
-    userList muid ref = do
-      conn <- rsConnection <$> ask
-      userSelect conn ref
 
-    userNew :: UserSubmit -> MateHandler Int
-    userNew us = do
-      now <- liftIO $ getCurrentTime
-      randSalt <- liftIO $ random 8
-      conn <- rsConnection <$> ask
-      insertUser us (utctDay now) randSalt conn
+authGet :: Int -> MateHandler AuthInfo
+authGet id =
+  getUserAuthInfo id
 
-    userGetUpdate :: Maybe Int -> Int -> MateHandler UserDetails
-    userGetUpdate Nothing _ =
-      throwError $ err403
-        { errBody = "No Authentication present"
-        }
-    userGetUpdate (Just aid) id =
-      if aid == id
-      then do
-        now <- liftIO $ getCurrentTime
-        conn <- rsConnection <$> ask
-        -- void $ liftIO $ runUpdate_ conn (updateUser id us (utctDay now))
-        userDetailsSelect conn id
-      else
-        throwError $ err403
-          { errBody = "Wrong Authentication present"
-          }
+authSend :: AuthRequest -> MateHandler AuthResult
+authSend = processAuthRequest
 
-    userPostUpdate :: Maybe Int -> Int -> UserDetailsSubmit -> MateHandler ()
-    use359c65b0e68b6607a03d39f908ca26827ab97fb6e21096rPostUpdate Nothing _ _ =
-      throwError $ err403
-        { errBody = "No Authentication present"
-        }
-    userPostUpdate (Just aid) id uds =
-      if aid == id
-      then do
-        now <- liftIO $ getCurrentTime
-        conn <- rsConnection <$> ask
-        void $ updateUserDetails id uds (utctDay now) conn
-      else
-        throwError $ err403
-          { errBody = "Wrong Authentication present"
-          }
-
-products =
-  listLong :<|>
-  new :<|>
-  stockUpdate :<|>
-  stockRefill
-  where
-    listLong :: MateHandler [ProductOverview]
-    listLong = do
-      conn <- rsConnection <$> ask
-      productOverviewSelect conn
-
-    new :: Maybe Int -> ProductSubmit -> MateHandler Int
-    new (Just _) bevsub = do
-      conn <- rsConnection <$> ask
-      now <- liftIO $ getCurrentTime
-      bevid <- insertProduct bevsub conn
-      void $ insertNewEmptyAmount bevid now bevsub conn
-      return bevid
-    new Nothing _ =
-      throwError $ err403
-
-    stockUpdate :: Maybe Int -> [AmountUpdate] -> MateHandler ()
-    stockUpdate (Just _) amoups = do
-      if all ((>= 0) . amountUpdateRealAmount) amoups
-      then do
-        conn <- rsConnection <$> ask
-        void $ manualProductAmountUpdate amoups conn
-      else
-        throwError $ err406
-          { errBody = "Amounts less than 0 are not acceptable"
-          }
-    stockUpdate Nothing _ =
-      throwError $ err403
-        { errBody = "No Authentication present"
-        }
-
-    stockRefill :: Maybe Int -> [AmountRefill] -> MateHandler ()
-    stockRefill (Just _) amorefs = do
-      if all ((>= 0) . amountRefillAmount) amorefs
-      then do
-        conn <- rsConnection <$> ask
-        void $ manualProductAmountRefill amorefs conn
-      else
-        throwError $ err406
-          { errBody = "Amounts less than 0 are not acceptable"
-          }
-    stockRefill Nothing _ =
-      throwError $ err403
-        { errBody = "No Authentication present"
-        }
+authLogout :: Maybe Int -> Int -> MateHandler ()
+authLogout (Just muid) luid = do
+  if muid == luid
+  then
+    processLogout luid
+  else
+    throwError $ err403
+      { errBody = "Forbidden"
+      }
+authLogout Nothing _ = do
+  throwError $ err403
+    { errBody = "Forbidden"
+    }
 
 
-buy :: Maybe Int -> [PurchaseDetail] -> MateHandler PurchaseResult
+userNew :: UserSubmit -> MateHandler Int
+userNew us = do
+  now <- liftIO $ getCurrentTime
+  randSalt <- liftIO $ random 8
+  conn <- rsConnection <$> ask
+  insertUser us (utctDay now) randSalt conn
+
+userGet :: Maybe Int -> Int -> MateHandler UserDetails
+userGet Nothing _ =
+  throwError $ err403
+    { errBody = "No Authentication present"
+    }
+userGet (Just aid) id =
+  if aid == id
+  then do
+    now <- liftIO $ getCurrentTime
+    conn <- rsConnection <$> ask
+    -- void $ liftIO $ runUpdate_ conn (updateUser id us (utctDay now))
+    userDetailsSelect conn id
+  else
+    throwError $ err403
+      { errBody = "Wrong Authentication present"
+      }
+
+userUpdate :: Maybe Int -> Int -> UserDetailsSubmit -> MateHandler ()
+userUpdate Nothing _ _ =
+  throwError $ err403
+    { errBody = "No Authentication present"
+    }
+userUpdate (Just aid) id uds =
+  if aid == id
+  then do
+    now <- liftIO $ getCurrentTime
+    conn <- rsConnection <$> ask
+    void $ updateUserDetails id uds (utctDay now) conn
+  else
+    throwError $ err403
+      { errBody = "Wrong Authentication present"
+      }
+
+userList :: Maybe Int -> Maybe Refine -> MateHandler [User]
+userList muid ref = do
+  conn <- rsConnection <$> ask
+  userSelect conn ref
+
+
+productNew :: Maybe Int -> ProductSubmit -> MateHandler Int
+productNew (Just _) bevsub = do
+  conn <- rsConnection <$> ask
+  now <- liftIO $ getCurrentTime
+  bevid <- insertProduct bevsub conn
+  void $ insertNewEmptyAmount bevid now bevsub conn
+  return bevid
+productNew Nothing _ =
+  throwError $ err403
+
+productOverview :: Int -> MateHandler ProductOverview
+productOverview pid = do
+  conn <- rsConnection <$> ask
+  productOverviewSelectSingle pid conn
+
+productStockRefill :: Maybe Int -> [AmountRefill] -> MateHandler ()
+productStockRefill (Just _) amorefs = do
+  if all ((>= 0) . amountRefillAmount) amorefs
+  then do
+    conn <- rsConnection <$> ask
+    void $ manualProductAmountRefill amorefs conn
+  else
+    throwError $ err406
+      { errBody = "Amounts less than 0 are not acceptable"
+      }
+productStockRefill Nothing _ =
+  throwError $ err403
+    { errBody = "No Authentication present"
+    }
+
+productStockUpdate :: Maybe Int -> [AmountUpdate] -> MateHandler ()
+productStockUpdate (Just _) amoups = do
+  if all ((>= 0) . amountUpdateRealAmount) amoups
+  then do
+    conn <- rsConnection <$> ask
+    void $ manualProductAmountUpdate amoups conn
+  else
+    throwError $ err406
+      { errBody = "Amounts less than 0 are not acceptable"
+      }
+productStockUpdate Nothing _ =
+  throwError $ err403
+    { errBody = "No Authentication present"
+    }
+
+productList :: MateHandler [ProductOverview]
+productList = do
+  conn <- rsConnection <$> ask
+  productOverviewSelect conn
+
+
 buy (Just auid) pds = do
   conn <- rsConnection <$> ask
   (missing, real) <- foldM (\acc@(ms, rs) pd -> do
@@ -260,29 +288,3 @@ buy Nothing pds = do
   return $ PurchaseResult
     (PayAmount price)
     missing
-
-auth =
-  authGet :<|>
-  authSend :<|>
-  authLogout
-  where
-    authGet :: Int -> MateHandler AuthInfo
-    authGet id =
-      getUserAuthInfo id
-
-    authSend :: AuthRequest -> MateHandler AuthResult
-    authSend = processAuthRequest
-
-    authLogout :: Maybe Int -> Int -> MateHandler ()
-    authLogout (Just muid) luid = do
-      if muid == luid
-      then
-        processLogout luid
-      else
-        throwError $ err403
-          { errBody = "Forbidden"
-          }
-    authLogout Nothing _ = do
-      throwError $ err403
-        { errBody = "Forbidden"
-        }
