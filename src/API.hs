@@ -46,3 +46,6 @@ type UserAPI =
 
   :<|> "buy" :> AuthProtect "header-auth" :> ReqBody '[JSON] [PurchaseDetail]
     :> Post '[JSON] PurchaseResult
+
+  :<|> "journal" :> AuthProtect "header-auth" :> QueryParam "limit" Int
+    :> QueryParam "offset" Int :> Get '[JSON] [JournalEntry]
