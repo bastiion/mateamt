@@ -56,25 +56,26 @@ amountTable = table "amount" (
 
 insertNewEmptyAmount
   :: Int           -- | the associated product id
-  -> UTCTime       -- | current time
   -> ProductSubmit -- | submitted product data
   -> PGS.Connection
   -> MateHandler Int
-insertNewEmptyAmount bevid now (ProductSubmit _ price _ _ _ _ _ _ _) conn =
-  fmap head $ liftIO $ runInsert_ conn $ Insert
-    { iTable = amountTable
-    , iRows  =
-      [
-      ( C.constant bevid
-      , C.constant now
-      , C.constant (0 :: Int)
-      , C.constant price
-      , C.constant False
-      )
-      ]
-    , iReturning = rReturning (\(id_, _, _, _, _) -> id_)
-    , iOnConflict = Nothing
-    }
+insertNewEmptyAmount bevid (ProductSubmit _ price _ _ _ _ _ _ _) conn =
+  liftIO $ do
+    now <- getCurrentTime
+    fmap head $ runInsert_ conn $ Insert
+      { iTable = amountTable
+      , iRows  =
+        [
+        ( C.constant bevid
+        , C.constant now
+        , C.constant (0 :: Int)
+        , C.constant price
+        , C.constant False
+        )
+        ]
+      , iReturning = rReturning (\(id_, _, _, _, _) -> id_)
+      , iOnConflict = Nothing
+      }
 
 getLatestPriceByProductId
   :: Int             -- The associated Product ID
