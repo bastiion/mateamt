@@ -421,7 +421,7 @@ insertProduct (ProductSubmit ident price ml ava sup max apc ppc artnr) conn =
       , C.constant artnr
       )
       ]
-    , iReturning = rReturning (\(id, _, _, _, _, _, _, _, _) -> id)
+    , iReturning = rReturning (\(id_, _, _, _, _, _, _, _, _) -> id_)
     , iOnConflict = Nothing
     }
 

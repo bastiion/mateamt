@@ -37,10 +37,10 @@ initUser :: PGS.Query
 initUser = mconcat
   [ "create table if not exists \"user\" ("
   , "user_id serial primary key,"
-  , "user_ident varchar(128) not null,"
+  , "user_ident text not null,"
   , "user_balance integer not null,"
   , "user_timestamp date not null,"
-  , "user_email varchar(128),"
+  , "user_email text,"
   , "user_avatar integer,"
   , "user_salt bytea not null,"
   , "user_hash bytea,"
