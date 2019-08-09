@@ -181,9 +181,8 @@ userList muid ref = do
 productNew :: Maybe Int -> ProductSubmit -> MateHandler Int
 productNew (Just _) bevsub = do
   conn <- rsConnection <$> ask
-  now <- liftIO $ getCurrentTime
   bevid <- insertProduct bevsub conn
-  void $ insertNewEmptyAmount bevid now bevsub conn
+  void $ insertNewEmptyAmount bevid bevsub conn
   return bevid
 productNew Nothing _ =
   throwError $ err403
