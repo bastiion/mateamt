@@ -8,10 +8,11 @@ import qualified Data.Text as T (Text)
 
 import Data.Aeson
 
-import Data.Time.Clock (UTCTime)
+import Data.Time (UTCTime)
 
 data JournalEntry = JournalEntry
-  { journalEntryDescription :: T.Text
+  { journalEntryId          :: Int
+  , journalEntryDescription :: T.Text
   , journalEntryTimestamp   :: UTCTime
   , journalEntryAmount      :: Int
   , journalEntryTotalAmount :: Int

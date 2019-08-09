@@ -28,6 +28,7 @@ executable mateamt
                      , Model.Product
                      , Model.Auth
                      , Model.Amount
+                     , Model.Journal
                      , Types
                      , Types.Auth
                      , Types.Product
@@ -36,6 +37,7 @@ executable mateamt
                      , Types.User
                      , Types.Purchase
                      , Types.Amount
+                     , Types.Journal
   -- other-extensions:
   build-depends:       base ^>=4.12.0.0
                      , servant

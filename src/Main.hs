@@ -49,6 +49,7 @@ main = do
   execute_ conn initProduct
   execute_ conn initToken
   execute_ conn initAmount
+  execute_ conn initJournal
   withStdoutLogger $ \log -> do
     let settings = setPort 3000 $ setLogger log defaultSettings
         initState = ReadState
