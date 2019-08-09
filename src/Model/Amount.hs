@@ -83,7 +83,7 @@ getLatestPriceByProductId
   -> MateHandler Int -- The price in cents
 getLatestPriceByProductId pid conn = do
   amounts <- liftIO $ runSelect conn $
-    orderBy (desc (\(_, ts, _, _, _) -> ts))
+    limit 1 $ orderBy (desc (\(_, ts, _, _, _) -> ts))
       (keepWhen (\(id_, _, _, _, _) -> id_ .== C.constant pid) <<< queryTable amountTable)
     :: MateHandler
       [ ( Int
@@ -103,7 +103,7 @@ getLatestAmountByProductId
   -> MateHandler Int -- The amount
 getLatestAmountByProductId pid conn = do
   amounts <- liftIO $ runSelect conn $
-    orderBy (desc (\(_, ts, _, _, _) -> ts))
+    limit 1 $ orderBy (desc (\(_, ts, _, _, _) -> ts))
       (keepWhen (\(id_, _, _, _, _) -> id_ .== C.constant pid) <<< queryTable amountTable)
     :: MateHandler
       [ ( Int
@@ -124,7 +124,7 @@ getLatestTotalPrice
   -> MateHandler Int -- The price in cents
 getLatestTotalPrice (PurchaseDetail pid amount) conn = do
   amounts <- liftIO $ runSelect conn $
-    orderBy (desc (\(_, ts, _, _, _) -> ts)) $
+    limit 1 $ orderBy (desc (\(_, ts, _, _, _) -> ts)) $
       keepWhen (\(id_, _, _, _, _) -> id_ .== C.constant pid) <<<
         queryTable amountTable
     :: MateHandler
@@ -146,7 +146,7 @@ checkProductAvailability
   -> MateHandler (Maybe Int) -- | Returns maybe missing amount
 checkProductAvailability (PurchaseDetail pid amount) conn = do
   realamount <- (\(_, _, ramount, _, _) -> ramount) <$> head <$>
-    (liftIO $ runSelect conn $
+    (liftIO $ runSelect conn $ limit 1 $
       orderBy (desc (\(_, ts, _, _, _) -> ts)) $
         keepWhen (\(id_, _, _, _, _) -> id_ .== C.constant pid) <<<
           queryTable amountTable
@@ -230,7 +230,7 @@ postBuyProductAmountUpdate
 postBuyProductAmountUpdate (PurchaseDetail pid pdamount) conn = do
   now <- liftIO $ getCurrentTime
   (amount, oldprice) <- (\(_, _, am, op, _) -> (am, op)) <$> head <$> (
-    liftIO $ runSelect conn $
+    liftIO $ runSelect conn $ limit 1 $
       orderBy (desc (\(_, ts, _, _, _) -> ts)) $
         keepWhen (\(id_, _, _, _, _) -> id_ .== C.constant pid) <<<
           queryTable amountTable
