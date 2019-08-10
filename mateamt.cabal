@@ -23,6 +23,9 @@ flag develop
 executable mateamt
   main-is:             Main.hs
   other-modules:       API
+                     , Control
+                     , Control.Buy
+                     , Control.Journal
                      , Model
                      , Model.User
                      , Model.Product
