@@ -36,16 +36,16 @@ import Model.Amount
 
 initProduct :: PGS.Query
 initProduct = mconcat
-  [ "create table if not exists \"product\" ("
-  , "product_id serial primary key,"
-  , "product_ident varchar(128) not null,"
-  , "product_ml integer not null,"
-  , "product_avatar integer,"
-  , "product_supplier integer,"
-  , "product_max_amount integer not null,"
-  , "product_amount_per_crate integer not null,"
-  , "product_price_per_crate integer,"
-  , "product_art_nr varchar(128)"
+  [ "CREATE TABLE IF NOT EXISTS \"product\" ("
+  , "product_id               SERIAL  PRIMARY KEY,"
+  , "product_ident            TEXT    NOT NULL,"
+  , "product_ml               INTEGER NOT NULL,"
+  , "product_avatar           INTEGER,"
+  , "product_supplier         INTEGER,"
+  , "product_max_amount       INTEGER NOT NULL,"
+  , "product_amount_per_crate INTEGER NOT NULL,"
+  , "product_price_per_crate  INTEGER,"
+  , "product_art_nr           TEXT"
   , ")"
   ]
 
