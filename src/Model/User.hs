@@ -35,16 +35,16 @@ import Types.Reader
 
 initUser :: PGS.Query
 initUser = mconcat
-  [ "create table if not exists \"user\" ("
-  , "user_id serial primary key,"
-  , "user_ident text not null,"
-  , "user_balance integer not null,"
-  , "user_timestamp date not null,"
-  , "user_email text,"
-  , "user_avatar integer,"
-  , "user_salt bytea not null,"
-  , "user_hash bytea,"
-  , "user_algo integer"
+  [ "CREATE TABLE IF NOT EXISTS \"user\" ("
+  , "user_id        SERIAL PRIMARY KEY,"
+  , "user_ident     TEXT NOT NULL,"
+  , "user_balance   INTEGER NOT NULL,"
+  , "user_timestamp DATE NOT NULL,"
+  , "user_email     TEXT,"
+  , "user_avatar    INTEGER,"
+  , "user_salt      BYTEA NOT NULL,"
+  , "user_hash      BYTEA,"
+  , "user_algo      INTEGER"
   , ")"
   ]
 
