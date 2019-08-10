@@ -39,14 +39,10 @@ initProduct = mconcat
   [ "create table if not exists \"product\" ("
   , "product_id serial primary key,"
   , "product_ident varchar(128) not null,"
-  -- , "product_price integer not null,"
-  -- , "product_amount integer not null,"
-  -- , "product_vanish integer not null,"
   , "product_ml integer not null,"
   , "product_avatar integer,"
   , "product_supplier integer,"
   , "product_max_amount integer not null,"
-  -- , "product_total_bought integer not null,"
   , "product_amount_per_crate integer not null,"
   , "product_price_per_crate integer,"
   , "product_art_nr varchar(128)"
@@ -56,28 +52,20 @@ initProduct = mconcat
 productTable :: Table
   ( Maybe (Field SqlInt4)
   , Field SqlText
-  -- , Field SqlInt4
-  -- , Field SqlInt4
-  -- , Field SqlInt4
   , Field SqlInt4
   , FieldNullable SqlInt4
   , FieldNullable SqlInt4
   , Field SqlInt4
-  -- , Field SqlInt4
   , Field SqlInt4
   , FieldNullable SqlInt4
   , FieldNullable SqlText
   )
   ( Field SqlInt4
   , Field SqlText
-  -- , Field SqlInt4
-  -- , Field SqlInt4
-  -- , Field SqlInt4
   , Field SqlInt4
   , FieldNullable SqlInt4
   , FieldNullable SqlInt4
   , Field SqlInt4
-  -- , Field SqlInt4
   , Field SqlInt4
   , FieldNullable SqlInt4
   , FieldNullable SqlText
@@ -86,14 +74,10 @@ productTable = table "product" (
   p9
     ( tableField "product_id"
     , tableField "product_ident"
-    -- , tableField "product_price"
-    -- , tableField "product_amount"
-    -- , tableField "product_vanish"
     , tableField "product_ml"
     , tableField "product_avatar"
     , tableField "product_supplier"
     , tableField "product_max_amount"
-    -- , tableField "product_total_bought"
     , tableField "product_amount_per_crate"
     , tableField "product_price_per_crate"
     , tableField "product_art_nr"
@@ -110,22 +94,18 @@ productSelect conn = do
     ) :: MateHandler
         [ ( Int
           , T.Text
-          -- , Int
-          -- , Int
-          -- , Int
           , Int
           , Maybe Int
           , Maybe Int
           , Int
-          -- , Int
           , Int
           , Maybe Int
           , Maybe T.Text
           )
         ]
   mapM
-    (\(i1, i2, {-i3, i4, i5,-} i6, i7, i8, i9, {-i10,-} i11, i12, i13) -> return $
-      Product i1 i2 {-i3 i4 i5-} i6 i7 i8 i9 {-i10-} i11 i12 i13
+    (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) -> return $
+      Product i1 i2 i3 i4 i5 i6 i7 i8 i9
       )
     prods
 
@@ -141,21 +121,17 @@ productOverviewSelect conn = do
     ) :: MateHandler
         [ ( Int
           , T.Text
-          -- , Int
-          -- , Int
-          -- , Int
           , Int
           , Maybe Int
           , Maybe Int
           , Int
-          -- , Int
           , Int
           , Maybe Int
           , Maybe T.Text
           )
         ]
   mapM
-    (\(i1, i2, {-i3, i4, i5,-} i6, i7, i8, i9, {-i10,-} i11, i12, i13) -> do
+    (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) -> do
       amounts <- liftIO $ runSelect conn
         ( proc () -> do
           stuff@(a1, _, _, _, _) <- orderBy (desc (\(_, ts, _, _, _) -> ts))
@@ -170,8 +146,8 @@ productOverviewSelect conn = do
                 , Bool
                 )
               ]
-      (i3, i4) <- return $ (\(_, _, y, x, _) -> (x, y)) $ head amounts
-      i5 <- return $ (\(_, x) -> x) $
+      (ii3, ii4) <- return $ (\(_, _, y, x, _) -> (x, y)) $ head amounts
+      ii5 <- return $ (\(_, x) -> x) $
         foldl
           (\(bef, van) (_, _, amo, _, ver) ->
             if ver
@@ -180,7 +156,7 @@ productOverviewSelect conn = do
             )
           (0, 0)
           (Prelude.reverse amounts)
-      i10 <- return $ snd $ foldl (\(bef, tot) (_, _, amo, _, ver) ->
+      ii10 <- return $ snd $ foldl (\(bef, tot) (_, _, amo, _, ver) ->
         if ver
         then (amo, tot)
         else (amo, tot + max 0 (bef - amo))
@@ -188,7 +164,7 @@ productOverviewSelect conn = do
         (0, 0)
         (Prelude.reverse amounts)
       return $ ProductOverview
-        i1 i2 i3 i4 i5 i6 i7 i8 i9 i10 i11 i12 i13
+        i1 i2 ii3 ii4 ii5 i3 i4 i5 i6 ii10 i7 i8 i9
       )
     prods
 
@@ -206,21 +182,17 @@ productOverviewSelectSingle pid conn = do
     ) :: MateHandler
         [ ( Int
           , T.Text
-          -- , Int
-          -- , Int
-          -- , Int
           , Int
           , Maybe Int
           , Maybe Int
           , Int
-          -- , Int
           , Int
           , Maybe Int
           , Maybe T.Text
           )
         ]
   head <$> mapM
-    (\(i1, i2, {-i3, i4, i5,-} i6, i7, i8, i9, {-i10,-} i11, i12, i13) -> do
+    (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) -> do
       amounts <- liftIO $ runSelect conn
         ( proc () -> do
           stuff@(a1, _, _, _, _) <- orderBy (desc (\(_, ts, _, _, _) -> ts))
@@ -235,8 +207,8 @@ productOverviewSelectSingle pid conn = do
                 , Bool
                 )
               ]
-      (i3, i4) <- return $ (\(_, _, y, x, _) -> (x, y)) $ head amounts
-      i5 <- return $ (\(_, x) -> x) $
+      (ii3, ii4) <- return $ (\(_, _, y, x, _) -> (x, y)) $ head amounts
+      ii5 <- return $ (\(_, x) -> x) $
         foldl
           (\(bef, van) (_, _, amo, _, ver) ->
             if ver
@@ -245,7 +217,7 @@ productOverviewSelectSingle pid conn = do
             )
           (0, 0)
           (Prelude.reverse amounts)
-      i10 <- return $ snd $ foldl (\(bef, tot) (_, _, amo, _, ver) ->
+      ii10 <- return $ snd $ foldl (\(bef, tot) (_, _, amo, _, ver) ->
         if ver
         then (amo, tot)
         else (amo, tot + max 0 (bef - amo))
@@ -253,7 +225,7 @@ productOverviewSelectSingle pid conn = do
         (0, 0)
         (Prelude.reverse amounts)
       return $ ProductOverview
-        i1 i2 i3 i4 i5 i6 i7 i8 i9 i10 i11 i12 i13
+        i1 i2 ii3 ii4 ii5 i3 i4 i5 i6 ii10 i7 i8 i9
       )
     prods
 
@@ -269,21 +241,17 @@ productShortOverviewSelect conn = do
     ) :: MateHandler
         [ ( Int
           , T.Text
-          -- , Int
-          -- , Int
-          -- , Int
           , Int
           , Maybe Int
           , Maybe Int
           , Int
-          -- , Int
           , Int
           , Maybe Int
           , Maybe T.Text
           )
         ]
   mapM
-    (\(i1, i2, {-i3, i4, i5,-} i6, i7, i8, i9, {-i10,-} i11, i12, i13) -> do
+    (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) -> do
       amounts <- liftIO $ runSelect conn
         ( proc () -> do
           stuff@(a1, _, _, _, _) <- orderBy (desc (\(_, ts, _, _, _) -> ts))
@@ -298,8 +266,8 @@ productShortOverviewSelect conn = do
                 , Bool
                 )
               ]
-      (i3, i4) <- return $ (\(_, _, y, x, _) -> (x, y)) $ head amounts
-      i5 <- return $ (\(_, x) -> x) $
+      (ii3, ii4) <- return $ (\(_, _, y, x, _) -> (x, y)) $ head amounts
+      ii5 <- return $ (\(_, x) -> x) $
         foldl
           (\(bef, van) (_, _, amo, _, ver) ->
             if ver
@@ -308,7 +276,7 @@ productShortOverviewSelect conn = do
             )
           (0, 0)
           (Prelude.reverse amounts)
-      i10 <- return $ snd $ foldl (\(bef, tot) (_, _, amo, _, ver) ->
+      ii10 <- return $ snd $ foldl (\(bef, tot) (_, _, amo, _, ver) ->
         if ver
         then (amo, tot)
         else (amo, tot + (bef - amo))
@@ -316,85 +284,9 @@ productShortOverviewSelect conn = do
         (0, 0)
         (Prelude.reverse amounts)
       return $ ProductShortOverview
-        i1 i2 i3 i4 i6 i7
+        i1 i2 ii3 ii4 i3 i4
       )
     prods
-
-
--- getProductPrice
---   :: PurchaseDetail
---   -> PGS.Connection
---   -> MateHandler Int
--- getProductPrice (PurchaseDetail bid amount) conn = do
---   when (amount < 0) (
---     throwError $ err406
---       { errBody = "Amounts less or equal zero are not acceptable"
---       }
---     )
---   bevs <- liftIO $ runSelect conn
---     ( keepWhen
---       (\(id_, _, _, _, _, _, _, _, _, _, _) -> id_ .== C.constant bid) <<<
---         queryTable productTable
---     ) :: MateHandler
---         [ ( Int
---           , T.Text
---           -- , Int
---           -- , Int
---           , Int
---           , Int
---           , Maybe Int
---           , Maybe Int
---           , Int
---           , Int
---           , Int
---           , Maybe Int
---           , Maybe T.Text
---           )
---         ]
---   (amount *) <$> head <$> mapM
---     (\(i1, i2, {-i3, i4,-} i5, i6, i7, i8, i9, i10, i11, i12, i13) -> return $
---       i3
---       )
---     bevs
-
-
--- checkProductAvailability
---   :: PGS.Connection
---   -> PurchaseDetail
---   -> MateHandler (Maybe Int) -- | returns maybe missing amount
--- checkProductAvailability conn (PurchaseDetail bid amount) = do
---   when (amount <= 0) $
---     throwError $ err406
---       { errBody = "Amounts less or equal zero are not acceptable"
---       }
---   bevs <- liftIO $ runSelect conn
---     ( keepWhen
---       (\(id_, _, _, _, _, _, _, _, _, _, _) -> id_ .== C.constant bid) <<<
---         queryTable productTable
---     ) :: MateHandler
---         [ ( Int
---           , T.Text
---           , Int
---           -- , Int
---           -- , Int
---           , Int
---           , Maybe Int
---           , Maybe Int
---           , Int
---           , Int
---           , Int
---           , Maybe Int
---           , Maybe T.Text
---           )
---         ]
---   realamount <- head <$> mapM
---     (\(i1, i2, i3, {-i4, i5,-} i6, i7, i8, i9, i10, i11, i12, i13) -> return $
---       i4
---       )
---     bevs
---   if realamount < amount
---   then return (Just (amount - realamount))
---   else return Nothing
 
 
 insertProduct
@@ -408,14 +300,10 @@ insertProduct (ProductSubmit ident price ml ava sup max apc ppc artnr) conn =
       [
       ( C.constant (Nothing :: Maybe Int)
       , C.constant ident
-      -- , C.constant price
-      -- , C.constant (0 :: Int)
-      -- , C.constant (0 :: Int)
       , C.constant ml
       , C.constant ava
       , C.constant sup
       , C.constant max
-      -- , C.constant (0 :: Int)
       , C.constant apc
       , C.constant ppc
       , C.constant artnr
@@ -424,62 +312,3 @@ insertProduct (ProductSubmit ident price ml ava sup max apc ppc artnr) conn =
     , iReturning = rReturning (\(id_, _, _, _, _, _, _, _, _) -> id_)
     , iOnConflict = Nothing
     }
-
-
--- updateProduct
---   :: Int
---   -> ProductSubmit
---   -> Update Int64
--- updateProduct sid (ProductSubmit ident price ml ava sup max apc ppc artnr) = Update
---   { uTable      = productTable
---   , uUpdateWith = updateEasy (\(id_, _, _, amo, van, _, _, _, _, tot, _, _, _) ->
---       ( id_
---       , C.constant ident
---       , C.constant price
---       , amo
---       , van
---       , C.constant ml
---       , C.constant ava
---       , C.constant sup
---       , C.constant max
---       , tot
---       , C.constant apc
---       , C.constant ppc
---       , C.constant artnr
---       )
---     )
---   , uWhere      =
---     (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) ->
---       id_ .== C.constant sid
---     )
---   , uReturning = rCount
---   }
-
--- reduceProductAmount
---   :: PurchaseDetail
---   -> Update Int64
--- reduceProductAmount (PurchaseDetail pid amount) = Update
---   { uTable      = productTable
---   , uUpdateWith = updateEasy
---     (\(id_, ident, price, amo, van, ml, ava, sup, max, tot, apc, ppc, artnr) ->
---       ( id_
---       , ident
---       , price
---       , amo - C.constant amount
---       , van
---       , ml
---       , ava
---       , sup
---       , max
---       , tot + C.constant amount
---       , apc
---       , ppc
---       , artnr
---       )
---     )
---   , uWhere      = 
---     (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) ->
---       id_ .== C.constant pid
---     )
---   , uReturning = rCount
---   }
