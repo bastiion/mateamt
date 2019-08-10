@@ -81,7 +81,9 @@ app initState =
         productStockUpdate :<|>
         productList :<|>
 
-        buy
+        buy :<|>
+
+        journalShow
       )
 
 userApi :: Proxy UserAPI

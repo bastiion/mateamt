@@ -2,6 +2,8 @@
 {-# LANGUAGE Arrows #-}
 module Model.Journal where
 
+import Data.Maybe (isJust)
+
 import Data.Time (UTCTime)
 import Data.Time.Clock
 
@@ -25,7 +27,7 @@ import Types
 initJournal :: PGS.Query
 initJournal = mconcat
   [ "CREATE TABLE IF NOT EXISTS \"journal\" ("
-  , "journal_id             SERIAL      NOT NULL ON DELETE CASCADE,"
+  , "journal_id             SERIAL      NOT NULL,"
   , "journal_timestamp      TIMESTAMPTZ NOT NULL,"
   , "journal_description    TEXT        NOT NULL,"
   , "journal_total_amount   INTEGER     NOT NULL,"
@@ -52,11 +54,50 @@ journalTable = table "journal" (
     ( tableField "journal_id"
     , tableField "journal_timestamp"
     , tableField "journal_description"
-    , tableField "journal_total_amout"
+    , tableField "journal_total_amount"
     , tableField "journal_entry_is_check"
     )
   )
 
+
+selectJournalEntries
+  :: Maybe Int                    -- limit
+  -> Maybe Int                    -- offset
+  -> PGS.Connection
+  -> MateHandler [JournalEntry]
+selectJournalEntries mlimit moffset conn = liftIO $ do
+  let lim = case mlimit of
+        Just l  -> limit (l + 1)
+        Nothing -> id
+      off = case moffset of
+        Just o  -> offset o
+        Nothing -> id
+  entries <- runSelect conn
+    ( proc () -> do
+      ret <- lim $ off $ orderBy (desc (\(id_, _, _, _, _) -> id_))
+        (queryTable journalTable) -< ()
+      returnA -< ret
+      ) :: IO
+        [ ( Int
+          , UTCTime
+          , T.Text
+          , Int
+          , Bool
+          )
+        ]
+  return $ fst $ foldr
+    (\(id_, ts, desc, tot, check) (fin, last)->
+      (JournalEntry id_ desc ts (tot - last) tot check : fin, tot)
+      )
+    ( []
+    , if isJust mlimit && not (null entries)
+      then (\(_, _, _, x, _) -> x) (last entries)
+      else 0
+    )
+    ( if isJust mlimit && length entries > 1
+      then init entries
+      else entries
+      )
 
 selectLatestJournalEntry
   :: PGS.Connection
