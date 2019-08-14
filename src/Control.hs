@@ -4,3 +4,6 @@ module Control
 
 import Control.Buy as C
 import Control.Journal as C
+import Control.User as C
+import Control.Auth as C
+import Control.Product as C

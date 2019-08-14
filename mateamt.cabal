@@ -26,6 +26,9 @@ executable mateamt
                      , Control
                      , Control.Buy
                      , Control.Journal
+                     , Control.User
+                     , Control.Product
+                     , Control.Auth
                      , Model
                      , Model.User
                      , Model.Product
