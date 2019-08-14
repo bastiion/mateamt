@@ -34,6 +34,8 @@ type UserAPI =
     :> Capture "uid'" Int :> ReqBody '[JSON] UserDetailsSubmit :> Patch '[JSON] ()
   :<|> "user" :> "list" :> AuthProtect "header-auth"
     :> QueryParam "refine" Refine :> Get '[JSON] [User]
+  :<|> "user" :> "recharge" :> AuthProtect "header-auth"
+    :> ReqBody '[JSON] UserRecharge :> Post '[JSON] ()
 
   :<|> "product" :> AuthProtect "header-auth" :> ReqBody '[JSON] ProductSubmit
     :> Post '[JSON] Int

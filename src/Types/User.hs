@@ -81,3 +81,15 @@ instance ToJSON UserDetailsSubmit where
   toEncoding = genericToEncoding defaultOptions
 
 instance FromJSON UserDetailsSubmit
+
+
+data UserRecharge = UserRecharge
+  { userRechargeId     :: Int
+  , userRechargeAmount :: Int
+  }
+  deriving (Generic, Show)
+
+instance ToJSON UserRecharge where
+  toEncoding = genericToEncoding defaultOptions
+
+instance FromJSON UserRecharge
