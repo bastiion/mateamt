@@ -36,6 +36,8 @@ type UserAPI =
     :> QueryParam "refine" Refine :> Get '[JSON] [User]
   :<|> "user" :> "recharge" :> AuthProtect "header-auth"
     :> ReqBody '[JSON] UserRecharge :> Post '[JSON] ()
+  :<|> "user" :> "transfer" :> AuthProtect "header-auth"
+    :> ReqBody '[JSON] UserTransfer :> Post '[JSON] ()
 
   :<|> "product" :> AuthProtect "header-auth" :> ReqBody '[JSON] ProductSubmit
     :> Post '[JSON] Int

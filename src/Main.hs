@@ -76,6 +76,7 @@ app initState =
         userUpdate :<|>
         userList :<|>
         userRecharge :<|>
+        userTransfer :<|>
 
         productNew :<|>
         productOverview :<|>

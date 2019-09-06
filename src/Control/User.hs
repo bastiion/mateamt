@@ -66,30 +66,60 @@ userList muid ref = do
   userSelect conn ref
 
 userRecharge :: Maybe Int -> UserRecharge -> MateHandler ()
-userRecharge (Just auid) (UserRecharge uid amount) =
-  if auid == uid
+userRecharge (Just auid) (UserRecharge amount) =
+  if amount >= 0
+  then do
+    conn <- rsConnection <$> ask
+    ud <- userDetailsSelect auid conn
+    void $ insertNewJournalEntry
+      (JournalSubmit
+        ("User \"" <> userDetailsIdent ud <> "\" recharged " <>
+          T.pack (show (fromIntegral amount / 100 :: Double)))
+        amount
+        )
+      conn
+    void $ addToUserBalance auid amount conn
+  else
+    throwError $ err400
+      { errBody = "Amounts less or equal zero are not acceptable."
+      }
+userRecharge Nothing _ =
+  throwError $ err403
+    { errBody = "No Authentication present."
+    }
+
+userTransfer :: Maybe Int -> UserTransfer -> MateHandler ()
+userTransfer (Just auid) (UserTransfer target amount) =
+  if amount >= 0
   then
-    if amount >= 0
+    if auid /= target
     then do
       conn <- rsConnection <$> ask
-      ud <- userDetailsSelect conn uid
-      void $ insertNewJournalEntry
-        (JournalSubmit
-          ("User \"" <> userDetailsIdent ud <> "\" recharged " <>
-            T.pack (show (fromIntegral amount / 100 :: Double)))
-          amount
-          )
-        conn
-      void $ addToUserBalance uid amount conn
-    else
-      throwError $ err406
-         { errBody = "Amounts less or equal zero are not acceptable"
+      user <- userDetailsSelect auid conn
+      if amount < userDetailsBalance user
+      then do
+        mtarget <- filter (\u -> userId u == target) <$> userSelect (Just All) conn
+        if not (null mtarget)
+        then do
+          void $ addToUserBalance auid (-amount) conn
+          void $ addToUserBalance target amount conn
+        else
+          throwError $ err400
+            { errBody = "Target user not found."
+            }
+      else
+       throwError $ err400
+         { errBody = "Not enough credit balance"
          }
+    else
+      throwError $ err400
+        { errBody = "You can not transfer yourself money."
+        }
   else
     throwError $ err403
       { errBody = "Wrong Authentication present"
       }
-userRecharge Nothing _ =
+userTransfer Nothing _ =
   throwError $ err403
-    { errBody = "No Authentication present"
+    { errBody = "No Authentication present."
     }
