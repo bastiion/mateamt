@@ -30,7 +30,7 @@ userNew us = do
 userGet :: Maybe Int -> Int -> MateHandler UserDetails
 userGet Nothing _ =
   throwError $ err403
-    { errBody = "No Authentication present"
+    { errBody = "No Authentication present."
     }
 userGet (Just aid) id =
   if aid == id
@@ -38,16 +38,16 @@ userGet (Just aid) id =
     now <- liftIO $ getCurrentTime
     conn <- rsConnection <$> ask
     -- void $ liftIO $ runUpdate_ conn (updateUser id us (utctDay now))
-    userDetailsSelect conn id
+    userDetailsSelect id conn
   else
     throwError $ err403
-      { errBody = "Wrong Authentication present"
+      { errBody = "Wrong Authentication present."
       }
 
 userUpdate :: Maybe Int -> Int -> UserDetailsSubmit -> MateHandler ()
 userUpdate Nothing _ _ =
   throwError $ err403
-    { errBody = "No Authentication present"
+    { errBody = "No Authentication present."
     }
 userUpdate (Just aid) id uds =
   if aid == id
@@ -57,7 +57,7 @@ userUpdate (Just aid) id uds =
     void $ updateUserDetails id uds (utctDay now) conn
   else
     throwError $ err403
-      { errBody = "Wrong Authentication present"
+      { errBody = "Wrong Authentication present."
       }
 
 userList :: Maybe Int -> Maybe Refine -> MateHandler [User]
@@ -116,8 +116,8 @@ userTransfer (Just auid) (UserTransfer target amount) =
         { errBody = "You can not transfer yourself money."
         }
   else
-    throwError $ err403
-      { errBody = "Wrong Authentication present"
+    throwError $ err400
+      { errBody = "Amounts less or equal zero are not acceptable."
       }
 userTransfer Nothing _ =
   throwError $ err403

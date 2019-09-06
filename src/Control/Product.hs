@@ -33,12 +33,12 @@ productStockRefill (Just _) amorefs = do
     conn <- rsConnection <$> ask
     void $ manualProductAmountRefill amorefs conn
   else
-    throwError $ err406
-      { errBody = "Amounts less than 0 are not acceptable"
+    throwError $ err400
+      { errBody = "Amounts less than 0 are not acceptable."
       }
 productStockRefill Nothing _ =
   throwError $ err403
-    { errBody = "No Authentication present"
+    { errBody = "No Authentication present."
     }
 
 productStockUpdate :: Maybe Int -> [AmountUpdate] -> MateHandler ()
@@ -48,12 +48,12 @@ productStockUpdate (Just _) amoups = do
     conn <- rsConnection <$> ask
     void $ manualProductAmountUpdate amoups conn
   else
-    throwError $ err406
-      { errBody = "Amounts less than 0 are not acceptable"
+    throwError $ err400
+      { errBody = "Amounts less than 0 are not acceptable."
       }
 productStockUpdate Nothing _ =
   throwError $ err403
-    { errBody = "No Authentication present"
+    { errBody = "No Authentication present."
     }
 
 productList :: MateHandler [ProductOverview]
