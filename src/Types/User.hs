@@ -84,8 +84,7 @@ instance FromJSON UserDetailsSubmit
 
 
 data UserRecharge = UserRecharge
-  { userRechargeId     :: Int
-  , userRechargeAmount :: Int
+  { userRechargeAmount :: Int
   }
   deriving (Generic, Show)
 
@@ -93,3 +92,15 @@ instance ToJSON UserRecharge where
   toEncoding = genericToEncoding defaultOptions
 
 instance FromJSON UserRecharge
+
+
+data UserTransfer = UserTransfer
+  { userTransferTarget :: Int
+  , userTransferAmount :: Int
+  }
+  deriving (Generic, Show)
+
+instance ToJSON UserTransfer where
+  toEncoding = genericToEncoding defaultOptions
+
+instance FromJSON UserTransfer

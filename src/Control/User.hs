@@ -63,7 +63,7 @@ userUpdate (Just aid) id uds =
 userList :: Maybe Int -> Maybe Refine -> MateHandler [User]
 userList muid ref = do
   conn <- rsConnection <$> ask
-  userSelect conn ref
+  userSelect ref conn
 
 userRecharge :: Maybe Int -> UserRecharge -> MateHandler ()
 userRecharge (Just auid) (UserRecharge amount) =

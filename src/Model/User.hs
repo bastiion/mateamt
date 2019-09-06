@@ -84,10 +84,10 @@ userTable = table "user" (
   )
 
 userSelect
-  :: PGS.Connection
-  -> Maybe Refine
+  :: Maybe Refine
+  -> PGS.Connection
   -> MateHandler [User]
-userSelect conn ref = do
+userSelect ref conn = do
   today <- utctDay <$> (liftIO $ getCurrentTime)
   users <- liftIO $ runSelect conn (case ref of
       Nothing -> keepWhen (\(_, _, _, ts, _, _, _, _, _) ->
@@ -116,10 +116,10 @@ userSelect conn ref = do
     users
 
 userDetailsSelect
-  :: PGS.Connection
-  -> Int
+  :: Int
+  -> PGS.Connection
   -> MateHandler UserDetails
-userDetailsSelect conn id = do
+userDetailsSelect id conn = do
   today <- utctDay <$> (liftIO $ getCurrentTime)
   users <- liftIO $ runSelect conn (
       keepWhen (\(uid, _, _, _, _, _, _, _, _) ->
