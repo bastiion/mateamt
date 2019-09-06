@@ -109,7 +109,7 @@ userTransfer (Just auid) (UserTransfer target amount) =
             }
       else
        throwError $ err400
-         { errBody = "Not enough credit balance"
+         { errBody = "Not enough credit balance."
          }
     else
       throwError $ err400
