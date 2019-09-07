@@ -35,7 +35,7 @@ initUser = mconcat
   , "user_balance   INTEGER NOT NULL,"
   , "user_timestamp DATE NOT NULL,"
   , "user_email     TEXT,"
-  , "user_avatar    INTEGER,"
+  , "user_avatar    INTEGER REFERENCES \"avatar\"(\"avatar_id\") ON DELETE CASCADE,"
   , "user_salt      BYTEA NOT NULL,"
   , "user_hash      BYTEA,"
   , "user_algo      INTEGER"

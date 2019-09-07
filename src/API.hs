@@ -11,6 +11,7 @@
 module API where
 
 import Servant.API
+import Servant.RawM
 
 -- internal imports
 
@@ -48,3 +49,10 @@ type MateAPI =
 
   :<|> "journal" :> AuthProtect "header-auth" :> QueryParam "limit" Int
     :> QueryParam "offset" Int :> Get '[JSON] [JournalEntry]
+
+  :<|> "avatar" :> Capture "id" Int :> RawM
+  :<|> "avatar" :> AuthProtect "header-auth" :> ReqBody '[JSON] AvatarData
+    :> Post '[JSON] Int
+  :<|> "avatar" :> AuthProtect "header-auth" :> Capture "id" Int
+    :> ReqBody '[JSON] AvatarData :> Patch '[JSON] ()
+  :<|> "avatar" :> "list" :> Get '[JSON] [Avatar]

@@ -49,12 +49,14 @@ library
                      , Control.User
                      , Control.Product
                      , Control.Auth
+                     , Control.Avatar
                      , Model
                      , Model.User
                      , Model.Product
                      , Model.Auth
                      , Model.Amount
                      , Model.Journal
+                     , Model.Avatar
                      , Types
                      , Types.Auth
                      , Types.Product
@@ -64,10 +66,12 @@ library
                      , Types.Purchase
                      , Types.Amount
                      , Types.Journal
+                     , Types.Avatar
   -- other-extensions:
   build-depends:       base ^>=4.12.0.0
                      , servant
                      , servant-server
+                     , servant-rawm
                      , opaleye
                      , aeson
                      , text
@@ -77,6 +81,7 @@ library
                      , warp
                      , wai
                      , wai-logger
+                     , http-types
                      , http-api-data
                      , bytestring
                      , base16-bytestring
@@ -84,6 +89,7 @@ library
                      , containers
                      , stm
                      , mtl
+                     , pureMD5
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:       -Wall

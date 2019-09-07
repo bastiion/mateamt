@@ -10,3 +10,4 @@ import Types.User as T
 import Types.Purchase as T
 import Types.Amount as T
 import Types.Journal as T
+import Types.Avatar as T

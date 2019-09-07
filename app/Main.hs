@@ -35,6 +35,7 @@ main = do
   conn <- connectPostgreSQL
     "host='localhost' port=5432 dbname='mateamt' user='mateamt' password='mateamt'"
   store <- newTVarIO empty
+  void $ execute_ conn initAvatar
   void $ execute_ conn initUser
   void $ execute_ conn initProduct
   void $ execute_ conn initToken
@@ -75,7 +76,12 @@ app initState =
 
         buy :<|>
 
-        journalShow
+        journalShow :<|>
+
+        avatarGet :<|>
+        avatarInsert :<|>
+        avatarUpdate :<|>
+        avatarList
       )
 
 userApi :: Proxy MateAPI
