@@ -10,14 +10,9 @@
 
 module API where
 
-import Data.Text
-import Data.Time (UTCTime)
-
 import Servant.API
 
 -- internal imports
-
-import Model as M
 
 import Types
 

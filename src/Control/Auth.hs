@@ -3,18 +3,14 @@ module Control.Auth where
 
 import Servant
 
-import Control.Monad (void)
-
-import Control.Monad.Reader (ask)
-
 -- internal imports
 
 import Types
 import Model
 
 authGet :: Int -> MateHandler AuthInfo
-authGet id =
-  getUserAuthInfo id
+authGet uid =
+  getUserAuthInfo uid
 
 authSend :: AuthRequest -> MateHandler AuthResult
 authSend = processAuthRequest

@@ -16,10 +16,6 @@ import Data.Time.Clock (UTCTime)
 
 import Data.Text.Encoding (encodeUtf8, decodeUtf8)
 
-import Data.IORef
-
-import Control.Monad.IO.Class (liftIO)
-
 import Control.Concurrent.STM.TVar (TVar)
 
 -- internal imports

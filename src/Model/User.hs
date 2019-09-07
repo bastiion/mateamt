@@ -1,6 +1,4 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DuplicateRecordFields #-}
 module Model.User where
 
 import Data.Text as T hiding (head, foldl)
@@ -9,15 +7,11 @@ import Data.Time.Clock
 
 import Data.Profunctor.Product (p9)
 
-import Data.Maybe (fromJust, isJust, fromMaybe)
-
 import Data.ByteString hiding (head, foldl)
 
 import Data.Int (Int64)
 
 import qualified Database.PostgreSQL.Simple as PGS
-
-import GHC.Generics
 
 import Control.Arrow ((<<<))
 
@@ -119,11 +113,10 @@ userDetailsSelect
   :: Int
   -> PGS.Connection
   -> MateHandler UserDetails
-userDetailsSelect id conn = do
-  today <- utctDay <$> (liftIO $ getCurrentTime)
+userDetailsSelect uid conn = do
   users <- liftIO $ runSelect conn (
-      keepWhen (\(uid, _, _, _, _, _, _, _, _) ->
-        uid .== C.constant id
+      keepWhen (\(uuid, _, _, _, _, _, _, _, _) ->
+        uuid .== C.constant uid
         ) <<< queryTable userTable
       ) :: MateHandler
           [ ( Int
@@ -138,8 +131,8 @@ userDetailsSelect id conn = do
             )
           ]
   head <$> mapM
-    (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) -> return $
-      UserDetails i2 i3 i5 i6 (AuthSalt i7) (toEnum <$> i9)
+    (\(i1, i2, i3, _, i5, i6, i7, _, i9) -> return $
+      UserDetails i1 i2 i3 i5 i6 (AuthSalt i7) (toEnum <$> i9)
       )
     users
 
@@ -148,11 +141,10 @@ userBalanceSelect
   :: PGS.Connection
   -> Int
   -> MateHandler Int
-userBalanceSelect conn id = do
-  today <- utctDay <$> (liftIO $ getCurrentTime)
+userBalanceSelect conn uid = do
   users <- liftIO $ runSelect conn (
-      keepWhen (\(uid, _, _, _, _, _, _, _, _) ->
-        uid .== C.constant id
+      keepWhen (\(uuid, _, _, _, _, _, _, _, _) ->
+        uuid .== C.constant uid
         ) <<< queryTable userTable
       ) :: MateHandler
           [ ( Int
@@ -167,7 +159,7 @@ userBalanceSelect conn id = do
             )
           ]
   head <$> mapM
-    (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) -> return $
+    (\(_, _, i3, _, _, _, _, _, _) -> return $
       i3
       )
     users
@@ -194,7 +186,7 @@ insertUser us now randSalt conn = fmap head $ liftIO $ runInsert_ conn $ Insert
     , C.constant (Nothing :: Maybe Int)
     )
     ]
-  , iReturning = rReturning (\(id, _, _, _, _, _, _, _, _) -> id)
+  , iReturning = rReturning (\(uid, _, _, _, _, _, _, _, _) -> uid)
   , iOnConflict = Nothing
   }
 
@@ -206,7 +198,7 @@ updateUserDetails
   -> MateHandler Int64
 updateUserDetails uid uds now conn = liftIO $ runUpdate_ conn $ Update
   { uTable      = userTable
-  , uUpdateWith = updateEasy (\(id_, _, i3, _, _, _, i7, i8, _) ->
+  , uUpdateWith = updateEasy (\(id_, _, i3, _, _, _, i7, _, _) ->
       ( id_
       , C.constant (userDetailsSubmitIdent uds)
       , i3

@@ -5,8 +5,6 @@ module Model.Auth where
 
 import Servant
 
-import GHC.Generics
-
 import Control.Arrow ((<<<))
 
 import Control.Monad (void)
@@ -15,7 +13,7 @@ import Control.Monad.IO.Class (liftIO)
 
 import Control.Monad.Reader (ask)
 
-import Control.Concurrent (threadDelay, forkIO)
+import Control.Concurrent (threadDelay)
 
 import Control.Concurrent.STM
 
@@ -74,6 +72,8 @@ tokenTable = table "token" (
       )
     )
 
+delayTime :: Int
+delayTime = 1 * 10 ^ (6 :: Int)
 
 getUserAuthInfo
   :: Int
@@ -81,7 +81,7 @@ getUserAuthInfo
 getUserAuthInfo ident = do
   conn <- rsConnection <$> ask
   users <- liftIO $ do
-    void $ threadDelay $ 1 * 10 ^ 6
+    void $ threadDelay delayTime
     runSelect conn (
       keepWhen (\(uid, _, _, _, _, _, _, _, _) ->
         uid .== C.constant ident) <<< queryTable userTable
@@ -102,7 +102,7 @@ getUserAuthInfo ident = do
     { errBody = "No such user"
     }
   else
-    head <$> mapM (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) ->
+    head <$> mapM (\(_, _, _, _, _, _, i7, _, i9) ->
         AuthInfo (AuthSalt i7) (toEnum $ fromMaybe 0 i9) <$> newTicket ident
         )
       users
@@ -129,12 +129,12 @@ validateToken conn header = do
       then return $ Just uid
       else do
         void $ deleteToken header conn
-        liftIO $ threadDelay $ 1 * 10 ^ 6
+        liftIO $ threadDelay delayTime
         throwError $ err401
           { errBody = "Your token expired!"
           }
     _ -> do
-      liftIO $ threadDelay $ 1 * 10 ^ 6
+      liftIO $ threadDelay delayTime
       throwError $ err401
         { errBody = "No valid token found!"
         }
@@ -144,7 +144,7 @@ generateToken
   :: Ticket
   -> AuthHash
   -> MateHandler AuthResult
-generateToken (Ticket _ ident exp) (AuthHash hash) = do
+generateToken (Ticket _ ident _) (AuthHash hash) = do
   conn <- rsConnection <$> ask
   users <- liftIO $ runSelect conn (
     keepWhen (\(uid, _, _, _, _, _, _, _, _) ->
@@ -161,7 +161,7 @@ generateToken (Ticket _ ident exp) (AuthHash hash) = do
           , Maybe Int
           )
         ]
-  let userHash = head $ map (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) -> i8) users
+  let userHash = head $ map (\(_, _, _, _, _, _, _, i8, _) -> i8) users
   if userHash == Nothing || userHash == Just hash
   then do
     token <- liftIO $ Token
@@ -239,7 +239,7 @@ processAuthRequest (AuthRequest aticket hash) = do
   case S.toList mticket of
     [ticket] -> do
       now <- liftIO $ getCurrentTime
-      liftIO $ threadDelay $ 1 * 10 ^ 6
+      liftIO $ threadDelay delayTime
       if now > ticketExpiry ticket
       then
 #if defined(DEVELOP)
@@ -252,7 +252,7 @@ processAuthRequest (AuthRequest aticket hash) = do
       else
         generateToken ticket hash
     _        -> do
-      liftIO $ threadDelay $ 1 * 10 ^ 6
+      liftIO $ threadDelay delayTime
 #if defined(DEVELOP)
       do
         mockticket <- Ticket <$> pure aticket <*> pure 1 <*> liftIO getCurrentTime

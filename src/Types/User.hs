@@ -29,9 +29,9 @@ data User
   deriving (Generic, Show)
 
 instance ToJSON User where
-  toEncoding (User id ident balance ts email avatar _ _ _) =
+  toEncoding (User uid ident _ _ _ avatar _ _ _) =
     pairs
-      (  "userId" .= id
+      (  "userId" .= uid
       <> "userIdent" .= ident
       <> "userAvatar" .= avatar
       )
@@ -53,7 +53,8 @@ instance FromJSON UserSubmit
 
 
 data UserDetails = UserDetails
-  { userDetailsIdent   :: T.Text
+  { userDetailsId      :: Int
+  , userDetailsIdent   :: T.Text
   , userDetailsBalance :: Int
   , userDetailsEmail   :: Maybe T.Text
   , userDetailsAvatar  :: Maybe Int

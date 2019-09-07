@@ -3,8 +3,6 @@
 
 module Types.Refine where
 
-import Data.Text
-
 import GHC.Generics
 
 import Web.HttpApiData

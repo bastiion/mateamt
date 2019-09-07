@@ -32,13 +32,11 @@ userGet Nothing _ =
   throwError $ err403
     { errBody = "No Authentication present."
     }
-userGet (Just aid) id =
-  if aid == id
+userGet (Just aid) uid =
+  if aid == uid
   then do
-    now <- liftIO $ getCurrentTime
     conn <- rsConnection <$> ask
-    -- void $ liftIO $ runUpdate_ conn (updateUser id us (utctDay now))
-    userDetailsSelect id conn
+    userDetailsSelect uid conn
   else
     throwError $ err403
       { errBody = "Wrong Authentication present."
@@ -49,19 +47,19 @@ userUpdate Nothing _ _ =
   throwError $ err403
     { errBody = "No Authentication present."
     }
-userUpdate (Just aid) id uds =
-  if aid == id
+userUpdate (Just aid) uid uds =
+  if aid == uid
   then do
     now <- liftIO $ getCurrentTime
     conn <- rsConnection <$> ask
-    void $ updateUserDetails id uds (utctDay now) conn
+    void $ updateUserDetails uid uds (utctDay now) conn
   else
     throwError $ err403
       { errBody = "Wrong Authentication present."
       }
 
 userList :: Maybe Int -> Maybe Refine -> MateHandler [User]
-userList muid ref = do
+userList _ ref = do
   conn <- rsConnection <$> ask
   userSelect ref conn
 

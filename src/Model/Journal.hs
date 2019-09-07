@@ -86,8 +86,8 @@ selectJournalEntries mlimit moffset conn = liftIO $ do
           )
         ]
   return $ fst $ foldr
-    (\(id_, ts, desc, tot, check) (fin, last)->
-      (JournalEntry id_ desc ts (tot - last) tot check : fin, tot)
+    (\(id_, ts, descr, tot, check) (fin, before)->
+      (JournalEntry id_ descr ts (tot - before) tot check : fin, tot)
       )
     ( []
     , if isJust mlimit && not (null entries)
@@ -119,8 +119,8 @@ selectLatestJournalEntry conn = liftIO $ do
   if not (null lastTwoEntries)
   then do
     let diff = foldl (\acc (_, _, _, tot, _) -> tot - acc) 0 lastTwoEntries
-        (id, ts, desc, total, check) = head lastTwoEntries
-    return $ Just $ JournalEntry id desc ts diff total check
+        (jid, ts, descr, total, check) = head lastTwoEntries
+    return $ Just $ JournalEntry jid descr ts diff total check
   else
     return Nothing
 
@@ -129,7 +129,7 @@ insertNewJournalEntry
   :: JournalSubmit
   -> PGS.Connection
   -> MateHandler Int
-insertNewJournalEntry (JournalSubmit desc amount) conn = do
+insertNewJournalEntry (JournalSubmit descr amount) conn = do
   lastTotal <- (\x -> case x of
     Just j  -> journalEntryTotalAmount j 
     Nothing -> 0
@@ -142,7 +142,7 @@ insertNewJournalEntry (JournalSubmit desc amount) conn = do
         [
         ( C.constant (Nothing :: Maybe Int)
         , C.constant now
-        , C.constant desc
+        , C.constant descr
         , C.constant (lastTotal + amount)
         , C.constant False
         )

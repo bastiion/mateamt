@@ -1,30 +1,17 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE Arrows #-}
 module Model.Product where
 
-import Servant.Server
-
 import Data.Text as T hiding (head, foldl)
-import Data.Time.Calendar (Day)
 import Data.Time.Clock (UTCTime)
 import Data.Profunctor.Product (p9)
 
-import Data.Aeson
-import Data.Aeson.Types
-
-import Data.Int (Int64)
-
-import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Error.Class (throwError)
 
 import Control.Arrow ((<<<), returnA)
 
 import qualified Database.PostgreSQL.Simple as PGS
-
-import GHC.Generics
 
 import Opaleye as O hiding (max)
 import Opaleye.Constant as C
@@ -251,7 +238,7 @@ productShortOverviewSelect conn = do
           )
         ]
   mapM
-    (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) -> do
+    (\(i1, i2, i3, i4, _, _, _, _, _) -> do
       amounts <- liftIO $ runSelect conn
         ( proc () -> do
           stuff@(a1, _, _, _, _) <- orderBy (desc (\(_, ts, _, _, _) -> ts))
@@ -267,22 +254,6 @@ productShortOverviewSelect conn = do
                 )
               ]
       (ii3, ii4) <- return $ (\(_, _, y, x, _) -> (x, y)) $ head amounts
-      ii5 <- return $ (\(_, x) -> x) $
-        foldl
-          (\(bef, van) (_, _, amo, _, ver) ->
-            if ver
-            then (amo, if amo < bef then van + (bef - amo) else van)
-            else (amo, van)
-            )
-          (0, 0)
-          (Prelude.reverse amounts)
-      ii10 <- return $ snd $ foldl (\(bef, tot) (_, _, amo, _, ver) ->
-        if ver
-        then (amo, tot)
-        else (amo, tot + (bef - amo))
-        )
-        (0, 0)
-        (Prelude.reverse amounts)
       return $ ProductShortOverview
         i1 i2 ii3 ii4 i3 i4
       )
@@ -293,7 +264,7 @@ insertProduct
   :: ProductSubmit
   -> PGS.Connection
   -> MateHandler Int
-insertProduct (ProductSubmit ident price ml ava sup max apc ppc artnr) conn =
+insertProduct (ProductSubmit ident _ ml ava sup maxi apc ppc artnr) conn =
   fmap head $ liftIO $ runInsert_ conn $ Insert
     { iTable = productTable
     , iRows  =
@@ -303,7 +274,7 @@ insertProduct (ProductSubmit ident price ml ava sup max apc ppc artnr) conn =
       , C.constant ml
       , C.constant ava
       , C.constant sup
-      , C.constant max
+      , C.constant maxi
       , C.constant apc
       , C.constant ppc
       , C.constant artnr

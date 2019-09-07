@@ -2,8 +2,6 @@
 
 module Types.Purchase where
 
-import Data.Text
-
 import Data.Aeson
 
 import GHC.Generics

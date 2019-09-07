@@ -1,8 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Control.Buy where
 
-import Servant
-
 import Control.Monad (void, foldM)
 
 import Control.Monad.Reader (ask)
@@ -18,7 +16,7 @@ buy
   -> MateHandler PurchaseResult
 buy (Just auid) pds = do
   conn <- rsConnection <$> ask
-  (missing, real) <- foldM (\acc@(ms, rs) pd -> do
+  (missing, real) <- foldM (\(ms, rs) pd -> do
     mmiss <- checkProductAvailability pd conn
     case mmiss of
       Just miss -> return
@@ -39,7 +37,7 @@ buy (Just auid) pds = do
     )
     0
     real
-  addToUserBalance auid (-price) conn
+  void $ addToUserBalance auid (-price) conn
   newBalance <- userBalanceSelect conn auid
   return $ PurchaseResult
     ( if newBalance < 0
@@ -49,7 +47,7 @@ buy (Just auid) pds = do
     missing
 buy Nothing pds = do
   conn <- rsConnection <$> ask
-  (missing, real) <- foldM (\acc@(ms, rs) pd -> do
+  (missing, real) <- foldM (\(ms, rs) pd -> do
     mmiss <- checkProductAvailability pd conn
     case mmiss of
       Just miss -> return
