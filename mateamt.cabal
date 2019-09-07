@@ -22,7 +22,27 @@ flag develop
 
 executable mateamt
   main-is:             Main.hs
-  other-modules:       API
+  -- other-extensions:
+  build-depends:       base ^>=4.12.0.0
+                     , mateamt
+                     , base16-bytestring
+                     , containers
+                     , mtl
+                     , opaleye
+                     , postgresql-simple
+                     , stm
+                     , servant
+                     , servant-server
+                     , time
+                     , warp
+                     , wai
+                     , wai-logger
+  hs-source-dirs:      app
+  ghc-options:       -Wall
+  default-language:    Haskell2010
+
+library
+  exposed-modules:       API
                      , Control
                      , Control.Buy
                      , Control.Journal
@@ -66,5 +86,6 @@ executable mateamt
                      , mtl
   hs-source-dirs:      src
   default-language:    Haskell2010
+  ghc-options:       -Wall
   if flag(develop)
     cpp-options:       -DDEVELOP

@@ -8,26 +8,15 @@ module Main where
 import Servant
 import Servant.Server.Experimental.Auth
 
-import Data.Time.Clock
-
-import Data.ByteString.Random
 import Data.ByteString.Base16 (decode)
 
 import Data.Set (empty)
-
-import Data.Maybe (isJust)
 
 import Database.PostgreSQL.Simple
 
 import Network.Wai
 import Network.Wai.Logger
 import Network.Wai.Handler.Warp
-
-import Opaleye hiding (max)
-
-import Control.Monad.IO.Class (liftIO)
-
-import Control.Monad (void)
 
 import Control.Monad.Reader
 
@@ -46,13 +35,13 @@ main = do
   conn <- connectPostgreSQL
     "host='localhost' port=5432 dbname='mateamt' user='mateamt' password='mateamt'"
   store <- newTVarIO empty
-  execute_ conn initUser
-  execute_ conn initProduct
-  execute_ conn initToken
-  execute_ conn initAmount
-  execute_ conn initJournal
-  withStdoutLogger $ \log -> do
-    let settings = setPort 3000 $ setLogger log defaultSettings
+  void $ execute_ conn initUser
+  void $ execute_ conn initProduct
+  void $ execute_ conn initToken
+  void $ execute_ conn initAmount
+  void $ execute_ conn initJournal
+  withStdoutLogger $ \ilog -> do
+    let settings = setPort 3000 $ setLogger ilog defaultSettings
         initState = ReadState
           { rsConnection  = conn
           , rsTicketStore = store
