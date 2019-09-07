@@ -78,7 +78,7 @@ app initState =
         journalShow
       )
 
-userApi :: Proxy UserAPI
+userApi :: Proxy MateAPI
 userApi = Proxy
 
 authProxy :: Proxy '[ AuthHandler Request (Maybe Int) ]

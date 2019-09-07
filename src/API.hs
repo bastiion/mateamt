@@ -16,7 +16,7 @@ import Servant.API
 
 import Types
 
-type UserAPI =
+type MateAPI =
   "auth" :> "get" :> ReqBody '[JSON] Int :> Post '[JSON] AuthInfo
   :<|> "auth" :> ReqBody '[JSON] AuthRequest :> Post '[JSON] AuthResult
   :<|> "auth" :> AuthProtect "header-auth" :> ReqBody '[JSON] Int
