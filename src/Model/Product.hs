@@ -98,7 +98,8 @@ productSelect conn = do
 
 
 productOverviewSelect
-  :: PGS.Connection
+  :: ProductRefine
+  -> PGS.Connection
   -> MateHandler [ProductOverview]
 productOverviewSelect conn = do
   prods <- liftIO $ runSelect conn

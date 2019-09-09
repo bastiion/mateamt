@@ -7,6 +7,8 @@ import Control.Monad (void)
 
 import Control.Monad.Reader (ask)
 
+import Data.Maybe (fromMaybe)
+
 -- internal imports
 
 import Types
@@ -56,7 +58,7 @@ productStockUpdate Nothing _ =
     { errBody = "No Authentication present."
     }
 
-productList :: Maybe ProductRefine :> MateHandler [ProductOverview]
+productList :: Maybe ProductRefine -> MateHandler [ProductOverview]
 productList mrefine = do
   conn <- rsConnection <$> ask
   productOverviewSelect (fromMaybe AvailableProducts mrefine) conn
