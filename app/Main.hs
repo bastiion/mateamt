@@ -42,7 +42,7 @@ main = do
   void $ execute_ conn initAmount
   void $ execute_ conn initJournal
   withStdoutLogger $ \ilog -> do
-    let settings = setPort 3000 $ setLogger ilog defaultSettings
+    let settings = setPort 8000 $ setLogger ilog defaultSettings
         initState = ReadState
           { rsConnection  = conn
           , rsTicketStore = store
