@@ -58,8 +58,8 @@ userUpdate (Just aid) uid uds =
       { errBody = "Wrong Authentication present."
       }
 
-userList :: Maybe Int -> Maybe Refine -> MateHandler [User]
-userList _ ref = do
+userList :: Maybe UserRefine -> MateHandler [UserSummary]
+userList ref = do
   conn <- rsConnection <$> ask
   userSelect ref conn
 

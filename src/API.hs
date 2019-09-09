@@ -28,8 +28,7 @@ type MateAPI =
     :> Capture "uid'" Int :> Get '[JSON] UserDetails
   :<|> "user" :> AuthProtect "header-auth"
     :> Capture "uid'" Int :> ReqBody '[JSON] UserDetailsSubmit :> Patch '[JSON] ()
-  :<|> "user" :> "list" :> AuthProtect "header-auth"
-    :> QueryParam "refine" Refine :> Get '[JSON] [User]
+  :<|> "user" :> "list" :> QueryParam "refine" UserRefine :> Get '[JSON] [UserSummary]
   :<|> "user" :> "recharge" :> AuthProtect "header-auth"
     :> ReqBody '[JSON] UserRecharge :> Post '[JSON] ()
   :<|> "user" :> "transfer" :> AuthProtect "header-auth"
