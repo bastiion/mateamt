@@ -105,6 +105,8 @@ data AuthResult
 instance ToJSON AuthResult where
   toEncoding = genericToEncoding defaultOptions
 
+instance FromJSON AuthResult
+
 
 newtype AuthToken = AuthToken ByteString deriving (Show)
 
