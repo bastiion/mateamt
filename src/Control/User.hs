@@ -96,7 +96,7 @@ userTransfer (Just auid) (UserTransfer target amount) =
       user <- userDetailsSelect auid conn
       if amount < userDetailsBalance user
       then do
-        mtarget <- filter (\u -> userId u == target) <$> userSelect (Just All) conn
+        mtarget <- filter (\u -> userSummaryId u == target) <$> userSelect (Just All) conn
         if not (null mtarget)
         then do
           void $ addToUserBalance auid (-amount) conn

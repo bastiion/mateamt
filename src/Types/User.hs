@@ -39,6 +39,19 @@ instance ToJSON User where
 instance FromJSON User
 
 
+data UserSummary = UserSummary
+  { userSummaryId     :: Int
+  , userSummaryIdent  :: T.Text
+  , userSummaryAvatar :: Maybe Int
+  }
+  deriving (Generic, Show)
+
+instance ToJSON UserSummary where
+  toEncoding = genericToEncoding defaultOptions
+
+instance FromJSON UserSummary
+
+
 data UserSubmit = UserSubmit
   { userSubmitIdent :: T.Text
   , userSubmitEmail :: Maybe T.Text
