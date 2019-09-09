@@ -52,9 +52,9 @@ main = do
 app :: ReadState -> Application
 -- app conn = serveWithContext userApi genAuthServerContext (users conn)
 app initState =
-  serveWithContext userApi (genAuthServerContext (rsConnection initState)) $
+  serveWithContext mateApi (genAuthServerContext (rsConnection initState)) $
     hoistServerWithContext
-      userApi
+      mateApi
       authProxy
       (`runReaderT` initState)
       ( authGet :<|>
@@ -84,8 +84,8 @@ app initState =
         avatarList
       )
 
-userApi :: Proxy MateAPI
-userApi = Proxy
+mateApi :: Proxy MateAPI
+mateApi = Proxy
 
 authProxy :: Proxy '[ AuthHandler Request (Maybe Int) ]
 authProxy = Proxy
