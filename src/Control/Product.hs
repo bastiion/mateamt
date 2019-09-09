@@ -56,7 +56,7 @@ productStockUpdate Nothing _ =
     { errBody = "No Authentication present."
     }
 
-productList :: MateHandler [ProductOverview]
-productList = do
+productList :: Maybe ProductRefine :> MateHandler [ProductOverview]
+productList mrefine = do
   conn <- rsConnection <$> ask
-  productOverviewSelect conn
+  productOverviewSelect (fromMaybe AvailableProducts mrefine) conn
