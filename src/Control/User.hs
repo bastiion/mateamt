@@ -13,6 +13,8 @@ import Data.Time (getCurrentTime, utctDay)
 
 import Data.ByteString.Random (random)
 
+import Data.Maybe (fromMaybe)
+
 import qualified Data.Text as T
 
 -- internal imports
@@ -61,7 +63,7 @@ userUpdate (Just aid) uid uds =
 userList :: Maybe UserRefine -> MateHandler [UserSummary]
 userList ref = do
   conn <- rsConnection <$> ask
-  userSelect ref conn
+  userSelect (fromMaybe ActiveUsers ref) conn
 
 userRecharge :: Maybe Int -> UserRecharge -> MateHandler ()
 userRecharge (Just auid) (UserRecharge amount) =
@@ -96,7 +98,7 @@ userTransfer (Just auid) (UserTransfer target amount) =
       user <- userDetailsSelect auid conn
       if amount < userDetailsBalance user
       then do
-        mtarget <- filter (\u -> userSummaryId u == target) <$> userSelect (Just AllUsers) conn
+        mtarget <- filter (\u -> userSummaryId u == target) <$> userSelect AllUsers conn
         if not (null mtarget)
         then do
           void $ addToUserBalance auid (-amount) conn

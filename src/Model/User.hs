@@ -78,17 +78,17 @@ userTable = table "user" (
   )
 
 userSelect
-  :: Maybe UserRefine
+  :: UserRefine
   -> PGS.Connection
   -> MateHandler [UserSummary]
 userSelect ref conn = do
   today <- utctDay <$> (liftIO $ getCurrentTime)
   users <- liftIO $ runSelect conn (case ref of
-      Nothing -> keepWhen (\(_, _, _, ts, _, _, _, _, _) ->
+      AllUsers -> selectTable userTable
+      ActiveUsers -> keepWhen (\(_, _, _, ts, _, _, _, _, _) ->
         ts .>= C.constant (addDays (-30) today)
         ) <<< queryTable userTable
-      Just AllUsers -> selectTable userTable
-      Just OldUsers -> keepWhen (\(_, _, _, ts, _, _, _, _, _) ->
+      OldUsers -> keepWhen (\(_, _, _, ts, _, _, _, _, _) ->
         ts .<= C.constant (addDays (-30) today)
         ) <<< queryTable userTable
       ) :: MateHandler
