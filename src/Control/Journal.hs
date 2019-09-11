@@ -19,6 +19,6 @@ journalShow (Just _) mlimit moffset = do
   conn <- rsConnection <$> ask
   selectJournalEntries mlimit moffset conn
 journalShow Nothing _ _ =
-  throwError $ err403
+  throwError $ err401
     { errBody = "No Authentication present"
     }

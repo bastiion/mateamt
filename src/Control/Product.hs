@@ -21,7 +21,7 @@ productNew (Just _) bevsub = do
   void $ insertNewEmptyAmount bevid bevsub conn
   return bevid
 productNew Nothing _ =
-  throwError $ err403
+  throwError $ err401
 
 productOverview :: Int -> MateHandler ProductOverview
 productOverview pid = do
@@ -39,7 +39,7 @@ productStockRefill (Just _) amorefs = do
       { errBody = "Amounts less than 0 are not acceptable."
       }
 productStockRefill Nothing _ =
-  throwError $ err403
+  throwError $ err401
     { errBody = "No Authentication present."
     }
 
@@ -54,7 +54,7 @@ productStockUpdate (Just _) amoups = do
       { errBody = "Amounts less than 0 are not acceptable."
       }
 productStockUpdate Nothing _ =
-  throwError $ err403
+  throwError $ err401
     { errBody = "No Authentication present."
     }
 

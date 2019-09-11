@@ -21,10 +21,10 @@ authLogout (Just muid) luid = do
   then
     processLogout luid
   else
-    throwError $ err403
-      { errBody = "Forbidden"
+    throwError $ err401
+      { errBody = "Unauthorized access"
       }
 authLogout Nothing _ = do
-  throwError $ err403
-    { errBody = "Forbidden"
+  throwError $ err401
+    { errBody = "Unauthorized access"
     }

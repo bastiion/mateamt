@@ -31,7 +31,7 @@ userNew us = do
 
 userGet :: Maybe Int -> Int -> MateHandler UserDetails
 userGet Nothing _ =
-  throwError $ err403
+  throwError $ err401
     { errBody = "No Authentication present."
     }
 userGet (Just aid) uid =
@@ -40,13 +40,13 @@ userGet (Just aid) uid =
     conn <- rsConnection <$> ask
     userDetailsSelect uid conn
   else
-    throwError $ err403
+    throwError $ err401
       { errBody = "Wrong Authentication present."
       }
 
 userUpdate :: Maybe Int -> Int -> UserDetailsSubmit -> MateHandler ()
 userUpdate Nothing _ _ =
-  throwError $ err403
+  throwError $ err401
     { errBody = "No Authentication present."
     }
 userUpdate (Just aid) uid uds =
@@ -56,7 +56,7 @@ userUpdate (Just aid) uid uds =
     conn <- rsConnection <$> ask
     void $ updateUserDetails uid uds (utctDay now) conn
   else
-    throwError $ err403
+    throwError $ err401
       { errBody = "Wrong Authentication present."
       }
 
@@ -84,7 +84,7 @@ userRecharge (Just auid) (UserRecharge amount) =
       { errBody = "Amounts less or equal zero are not acceptable."
       }
 userRecharge Nothing _ =
-  throwError $ err403
+  throwError $ err401
     { errBody = "No Authentication present."
     }
 
@@ -120,6 +120,6 @@ userTransfer (Just auid) (UserTransfer target amount) =
       { errBody = "Amounts less or equal zero are not acceptable."
       }
 userTransfer Nothing _ =
-  throwError $ err403
+  throwError $ err401
     { errBody = "No Authentication present."
     }

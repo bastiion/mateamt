@@ -50,7 +50,7 @@ avatarInsert (Just _) ad = do
   conn <- rsConnection <$> ask
   insertAvatar ad conn
 avatarInsert Nothing _ =
-  throwError $ err403
+  throwError $ err401
     { errBody = "No Authentication present."
     }
 
@@ -63,7 +63,7 @@ avatarUpdate (Just _) aid ad = do
   conn <- rsConnection <$> ask
   void $ updateAvatar aid ad conn
 avatarUpdate Nothing _ _ = do
-  throwError $ err403
+  throwError $ err401
     { errBody = "No Authentication present."
     }
 
