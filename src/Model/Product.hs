@@ -101,11 +101,20 @@ productOverviewSelect
   :: ProductRefine
   -> PGS.Connection
   -> MateHandler [ProductOverview]
-productOverviewSelect conn = do
+productOverviewSelect refine conn = do
   prods <- liftIO $ runSelect conn
     ( proc () -> do
-        (i1, i2, i6, i7, i8, i9, i11, i12, i13) <- queryTable productTable -< ()
-        returnA -< (i1, i2, i6, i7, i8, i9, i11, i12, i13)
+        (pid, i2, i6, i7, i8, i9, i11, i12, i13) <- queryTable productTable -< ()
+        (a1, a2, a3, a4, a5) <-
+          limit 1 (
+            orderBy (desc (\(_, ts, _, _, _) -> ts)) (queryTable amountTable))
+              -< ()
+        restrict -< a1 .== pid
+        restrict -< case refine of
+          AllProducts -> C.constant True
+          AvailableProducts -> a3 ./= C.constant (0 :: Int)
+          DepletedProducts -> a3 .== C.constant (0 :: Int)
+        returnA -< (pid, i2, i6, i7, i8, i9, i11, i12, i13)
     ) :: MateHandler
         [ ( Int
           , T.Text
