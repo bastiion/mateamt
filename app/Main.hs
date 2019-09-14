@@ -39,6 +39,7 @@ main = do
   void $ execute_ conn initUser
   void $ execute_ conn initProduct
   void $ execute_ conn initToken
+  void $ execute_ conn initAuthData
   void $ execute_ conn initAmount
   void $ execute_ conn initJournal
   withStdoutLogger $ \ilog -> do
@@ -105,7 +106,7 @@ authHandler conn = mkAuthHandler handler
       let headers = requestHeaders req
       res <- case lookup "Authentication" headers of
         Just hh ->
-          validateToken conn (fst $ decode hh)
+          validateToken (fst $ decode hh) conn
         _       ->
           return Nothing
       return res

@@ -8,9 +8,14 @@ import Servant
 import Types
 import Model
 
-authGet :: Int -> MateHandler AuthInfo
-authGet uid =
-  getUserAuthInfo uid
+authGet :: TicketRequest -> MateHandler AuthInfo
+authGet (TicketRequest uid method) = do
+  mai <- getUserAuthInfo uid method
+  case mai of
+    Just ai -> (return ai :: MateHandler AuthInfo)
+    Nothing -> throwError $ err404
+      { errBody = "No such user"
+      }
 
 authSend :: AuthRequest -> MateHandler AuthResult
 authSend = processAuthRequest

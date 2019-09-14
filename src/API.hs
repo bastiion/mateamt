@@ -18,7 +18,7 @@ import Servant.RawM
 import Types
 
 type MateAPI =
-  "auth" :> "get" :> ReqBody '[JSON] Int :> Post '[JSON] AuthInfo
+  "auth" :> "get" :> ReqBody '[JSON] TicketRequest :> Post '[JSON] AuthInfo
   :<|> "auth" :> ReqBody '[JSON] AuthRequest :> Post '[JSON] AuthResult
   :<|> "auth" :> AuthProtect "header-auth" :> ReqBody '[JSON] Int
     :> Delete '[JSON] ()

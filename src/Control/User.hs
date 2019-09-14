@@ -11,8 +11,6 @@ import Control.Monad.IO.Class (liftIO)
 
 import Data.Time (getCurrentTime, utctDay)
 
-import Data.ByteString.Random (random)
-
 import Data.Maybe (fromMaybe)
 
 import qualified Data.Text as T
@@ -25,9 +23,8 @@ import Model
 userNew :: UserSubmit -> MateHandler Int
 userNew us = do
   now <- liftIO $ getCurrentTime
-  randSalt <- liftIO $ random 8
   conn <- rsConnection <$> ask
-  insertUser us (utctDay now) randSalt conn
+  insertUser us (utctDay now) conn
 
 userGet :: Maybe Int -> Int -> MateHandler UserDetails
 userGet Nothing _ =

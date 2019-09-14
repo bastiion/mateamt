@@ -12,8 +12,6 @@ import qualified Data.Text as T
 
 -- internal imports
 
-import Types.Auth
-
 data User
   = User
     { userId        :: Int
@@ -22,21 +20,11 @@ data User
     , userTimeStamp :: Day
     , userEmail     :: Maybe T.Text
     , userAvatar    :: Maybe Int
-    , userSalt      :: AuthSalt
-    , userHash      :: Maybe AuthHash
-    , userAlgo      :: Maybe Int
+    -- , userSalt      :: AuthSalt
+    -- , userHash      :: Maybe AuthHash
+    -- , userAlgo      :: Maybe Int
     }
   deriving (Generic, Show)
-
-instance ToJSON User where
-  toEncoding (User uid ident _ _ _ avatar _ _ _) =
-    pairs
-      (  "userId" .= uid
-      <> "userIdent" .= ident
-      <> "userAvatar" .= avatar
-      )
-
-instance FromJSON User
 
 
 data UserSummary = UserSummary
@@ -71,8 +59,8 @@ data UserDetails = UserDetails
   , userDetailsBalance :: Int
   , userDetailsEmail   :: Maybe T.Text
   , userDetailsAvatar  :: Maybe Int
-  , userDetailsSalt    :: AuthSalt
-  , userDetailsAlgo    :: Maybe AuthAlgorithm
+  -- , userDetailsSalt    :: AuthSalt
+  -- , userDetailsAlgo    :: Maybe AuthAlgorithm
   }
   deriving (Generic, Show)
 
@@ -86,8 +74,8 @@ data UserDetailsSubmit = UserDetailsSubmit
   { userDetailsSubmitIdent   :: T.Text
   , userDetailsSubmitEmail   :: Maybe T.Text
   , userDetailsSubmitAvatar  :: Maybe Int
-  , userDetailsSubmitHash    :: Maybe AuthHash
-  , userDetailsSubmitAlgo    :: Maybe AuthAlgorithm
+  -- , userDetailsSubmitHash    :: Maybe AuthHash
+  -- , userDetailsSubmitAlgo    :: Maybe AuthAlgorithm
   }
   deriving (Generic, Show)
 

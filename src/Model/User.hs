@@ -5,7 +5,7 @@ import Data.Text as T hiding (head, foldl)
 import Data.Time.Calendar
 import Data.Time.Clock
 
-import Data.Profunctor.Product (p9)
+import Data.Profunctor.Product (p6)
 
 import Data.ByteString hiding (head, foldl)
 
@@ -35,10 +35,7 @@ initUser = mconcat
   , "user_balance   INTEGER NOT NULL,"
   , "user_timestamp DATE NOT NULL,"
   , "user_email     TEXT,"
-  , "user_avatar    INTEGER REFERENCES \"avatar\"(\"avatar_id\") ON DELETE CASCADE,"
-  , "user_salt      BYTEA NOT NULL,"
-  , "user_hash      BYTEA,"
-  , "user_algo      INTEGER"
+  , "user_avatar    INTEGER REFERENCES \"avatar\"(\"avatar_id\") ON DELETE CASCADE"
   , ")"
   ]
 
@@ -49,9 +46,6 @@ userTable :: Table
   , Field SqlDate
   , FieldNullable SqlText
   , FieldNullable SqlInt4
-  , Field SqlBytea
-  , FieldNullable SqlBytea
-  , FieldNullable SqlInt4
   )
   ( Field SqlInt4
   , Field SqlText
@@ -59,21 +53,15 @@ userTable :: Table
   , Field SqlDate
   , FieldNullable SqlText
   , FieldNullable SqlInt4
-  , Field SqlBytea
-  , FieldNullable SqlBytea
-  , FieldNullable SqlInt4
   )
 userTable = table "user" (
-  p9
+  p6
     ( tableField "user_id"
     , tableField "user_ident"
     , tableField "user_balance"
     , tableField "user_timestamp"
     , tableField "user_email"
     , tableField "user_avatar"
-    , tableField "user_salt"
-    , tableField "user_hash"
-    , tableField "user_algo"
     )
   )
 
@@ -85,10 +73,10 @@ userSelect ref conn = do
   today <- utctDay <$> (liftIO $ getCurrentTime)
   users <- liftIO $ runSelect conn (case ref of
       AllUsers -> selectTable userTable
-      ActiveUsers -> keepWhen (\(_, _, _, ts, _, _, _, _, _) ->
+      ActiveUsers -> keepWhen (\(_, _, _, ts, _, _) ->
         ts .>= C.constant (addDays (-30) today)
         ) <<< queryTable userTable
-      OldUsers -> keepWhen (\(_, _, _, ts, _, _, _, _, _) ->
+      OldUsers -> keepWhen (\(_, _, _, ts, _, _) ->
         ts .<= C.constant (addDays (-30) today)
         ) <<< queryTable userTable
       ) :: MateHandler
@@ -98,14 +86,10 @@ userSelect ref conn = do
             , Day
             , Maybe Text
             , Maybe Int
-            , ByteString
-            , Maybe ByteString
-            , Maybe Int
             )
           ]
   mapM
-    (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) -> return $
-      -- User i1 i2 i3 i4 i5 i6 (AuthSalt i7) (AuthHash <$> i8) (toEnum <$> i9)
+    (\(i1, i2, i3, i4, i5, i6) -> return $
       UserSummary i1 i2 i6
       )
     users
@@ -116,7 +100,7 @@ userDetailsSelect
   -> MateHandler UserDetails
 userDetailsSelect uid conn = do
   users <- liftIO $ runSelect conn (
-      keepWhen (\(uuid, _, _, _, _, _, _, _, _) ->
+      keepWhen (\(uuid, _, _, _, _, _) ->
         uuid .== C.constant uid
         ) <<< queryTable userTable
       ) :: MateHandler
@@ -126,14 +110,11 @@ userDetailsSelect uid conn = do
             , Day
             , Maybe Text
             , Maybe Int
-            , ByteString
-            , Maybe ByteString
-            , Maybe Int
             )
           ]
   head <$> mapM
-    (\(i1, i2, i3, _, i5, i6, i7, _, i9) -> return $
-      UserDetails i1 i2 i3 i5 i6 (AuthSalt i7) (toEnum <$> i9)
+    (\(i1, i2, i3, _, i5, i6) -> return $
+      UserDetails i1 i2 i3 i5 i6
       )
     users
 
@@ -144,7 +125,7 @@ userBalanceSelect
   -> MateHandler Int
 userBalanceSelect conn uid = do
   users <- liftIO $ runSelect conn (
-      keepWhen (\(uuid, _, _, _, _, _, _, _, _) ->
+      keepWhen (\(uuid, _, _, _, _, _) ->
         uuid .== C.constant uid
         ) <<< queryTable userTable
       ) :: MateHandler
@@ -154,13 +135,10 @@ userBalanceSelect conn uid = do
             , Day
             , Maybe Text
             , Maybe Int
-            , ByteString
-            , Maybe ByteString
-            , Maybe Int
             )
           ]
   head <$> mapM
-    (\(_, _, i3, _, _, _, _, _, _) -> return $
+    (\(_, _, i3, _, _, _) -> return $
       i3
       )
     users
@@ -169,10 +147,9 @@ userBalanceSelect conn uid = do
 insertUser
   :: UserSubmit
   -> Day
-  -> ByteString
   -> PGS.Connection
   -> MateHandler Int
-insertUser us now randSalt conn = fmap head $ liftIO $ runInsert_ conn $ Insert
+insertUser us now conn = fmap head $ liftIO $ runInsert_ conn $ Insert
   { iTable = userTable
   , iRows  =
     [
@@ -182,12 +159,9 @@ insertUser us now randSalt conn = fmap head $ liftIO $ runInsert_ conn $ Insert
     , C.constant now
     , C.constant (userSubmitEmail us)
     , C.constant (Nothing :: Maybe Int)
-    , C.constant randSalt
-    , C.constant (Nothing :: Maybe ByteString)
-    , C.constant (Nothing :: Maybe Int)
     )
     ]
-  , iReturning = rReturning (\(uid, _, _, _, _, _, _, _, _) -> uid)
+  , iReturning = rReturning (\(uid, _, _, _, _, _) -> uid)
   , iOnConflict = Nothing
   }
 
@@ -199,19 +173,16 @@ updateUserDetails
   -> MateHandler Int64
 updateUserDetails uid uds now conn = liftIO $ runUpdate_ conn $ Update
   { uTable      = userTable
-  , uUpdateWith = updateEasy (\(id_, _, i3, _, _, _, i7, _, _) ->
+  , uUpdateWith = updateEasy (\(id_, _, i3, _, _, _) ->
       ( id_
       , C.constant (userDetailsSubmitIdent uds)
       , i3
       , C.constant now
       , C.constant (userDetailsSubmitEmail uds)
       , C.constant (userDetailsSubmitAvatar uds)
-      , i7
-      , C.constant ((\(AuthHash h) -> h) <$> userDetailsSubmitHash uds)
-      , C.constant (fromEnum <$> userDetailsSubmitAlgo uds)
       )
     )
-  , uWhere      = (\(i1, _, _, _, _, _, _, _, _) -> i1 .== C.constant uid)
+  , uWhere      = (\(i1, _, _, _, _, _) -> i1 .== C.constant uid)
   , uReturning  = rCount
   }
 
@@ -222,18 +193,15 @@ addToUserBalance
   -> MateHandler Int64
 addToUserBalance uid amount conn = liftIO $ runUpdate_ conn $ Update
   { uTable      = userTable
-  , uUpdateWith = updateEasy (\(id_, i2, i3, i4, i5, i6, i7, i8, i9) ->
+  , uUpdateWith = updateEasy (\(id_, i2, i3, i4, i5, i6) ->
       ( id_
       , i2
       , i3 + C.constant amount
       , i4
       , i5
       , i6
-      , i7
-      , i8
-      , i9
       )
     )
-  , uWhere      = (\(i1, _, _, _, _, _, _, _, _) -> i1 .== C.constant uid)
+  , uWhere      = (\(i1, _, _, _, _, _) -> i1 .== C.constant uid)
   , uReturning  = rCount
   }

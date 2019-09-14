@@ -7,22 +7,30 @@ import GHC.Generics
 
 import Data.Aeson
 
-import Data.ByteString
-import qualified Data.ByteString.Base16 as B16
-
 import qualified Data.Set as S
 
 import Data.Time.Clock (UTCTime)
 
-import Data.Text.Encoding (encodeUtf8, decodeUtf8)
+import qualified Data.Text as T
 
 import Control.Concurrent.STM.TVar (TVar)
 
 -- internal imports
 
+data TicketRequest = TicketRequest
+  { ticketRequestUser   :: Int
+  , ticketRequestMethod :: AuthMethod
+  }
+  deriving (Show, Generic)
+
+instance ToJSON TicketRequest where
+  toEncoding = genericToEncoding defaultOptions
+
+instance FromJSON TicketRequest
+
+
 data AuthInfo = AuthInfo
-  { authSalt      :: AuthSalt
-  , authAlgorithm :: AuthAlgorithm
+  { authChallenge :: Maybe T.Text
   , authTicket    :: AuthTicket
   }
   deriving (Show, Generic)
@@ -33,59 +41,37 @@ instance ToJSON AuthInfo where
 instance FromJSON AuthInfo
 
 
-data AuthAlgorithm
-  = SHA3_512
-    deriving (Show, Read, Generic, Enum)
+data AuthMethod
+  = PrimaryPass
+  | SecondaryPass
+  | ChallengeResponse
+  deriving (Show, Generic, Enum, Eq, Ord)
 
-instance ToJSON AuthAlgorithm where
-  toJSON = toJSON . show
+instance ToJSON AuthMethod where
+  toEncoding = genericToEncoding defaultOptions
 
-instance FromJSON AuthAlgorithm where
-  parseJSON j = read <$> parseJSON j
+instance FromJSON AuthMethod
 
 
-newtype AuthTicket = AuthTicket ByteString deriving (Show, Eq, Ord)
+newtype AuthTicket = AuthTicket T.Text deriving (Show, Generic, Eq, Ord)
 
 instance ToJSON AuthTicket where
-  toJSON (AuthTicket bs) = (String . decodeUtf8 . B16.encode) bs
+  toEncoding = genericToEncoding defaultOptions
 
-instance FromJSON AuthTicket where
-  parseJSON = withText ""
-    (\t -> do
-      let enc = fst $ B16.decode $ encodeUtf8 t
-      return (AuthTicket enc)
-      )
+instance FromJSON AuthTicket
 
 
-newtype AuthSalt = AuthSalt ByteString deriving (Show)
+newtype AuthResponse = AuthResponse T.Text deriving (Show, Generic)
 
-instance ToJSON AuthSalt where
-  toJSON (AuthSalt bs) = (String . decodeUtf8 . B16.encode) bs
+instance ToJSON AuthResponse where
+  toEncoding = genericToEncoding defaultOptions
 
-instance FromJSON AuthSalt where
-  parseJSON = withText ""
-    (\t -> do
-      let enc = fst $ B16.decode $ encodeUtf8 t
-      return (AuthSalt enc)
-      )
-
-
-newtype AuthHash = AuthHash ByteString deriving (Show)
-
-instance ToJSON AuthHash where
-  toJSON (AuthHash bs) = (String . decodeUtf8 . B16.encode) bs
-
-instance FromJSON AuthHash where
-  parseJSON = withText ""
-    (\t -> do
-      let enc = fst $ B16.decode $ encodeUtf8 t
-      return (AuthHash enc)
-      )
+instance FromJSON AuthResponse
 
 
 data AuthRequest = AuthRequest
   { authRequestTicket :: AuthTicket
-  , authRequestHash   :: AuthHash
+  , authRequestHash   :: AuthResponse
   }
   deriving (Show, Generic)
 
@@ -108,28 +94,21 @@ instance ToJSON AuthResult where
 instance FromJSON AuthResult
 
 
-newtype AuthToken = AuthToken ByteString deriving (Show)
+newtype AuthToken = AuthToken T.Text deriving (Show, Generic)
 
 instance ToJSON AuthToken where
-  toJSON (AuthToken bs) = (String . decodeUtf8 . B16.encode) bs
+  toEncoding = genericToEncoding defaultOptions
 
-instance FromJSON AuthToken where
-  parseJSON = withText ""
-    (\t -> do
-      let enc = fst $ B16.decode $ encodeUtf8 t
-      return (AuthToken enc)
-      )
+instance FromJSON AuthToken
 
 
 data Token = Token
-  { tokenString :: ByteString
+  { tokenString :: T.Text
   , tokenUser   :: Int
   , tokenExpiry :: UTCTime
+  , tokenMethod :: AuthMethod
   }
   deriving (Generic, Show)
-
-instance ToJSON Token where
-  toJSON (Token s _ _) = (String . decodeUtf8 . B16.encode) s
 
 
 type TicketStore = TVar (S.Set Ticket)
@@ -139,8 +118,18 @@ data Ticket = Ticket
   { ticketId     :: AuthTicket
   , ticketUser   :: Int
   , ticketExpiry :: UTCTime
+  , ticketMethod :: AuthMethod
   }
-  deriving (Ord)
+  deriving (Show, Ord)
 
 instance Eq Ticket where
-  (Ticket i1 _ _) == (Ticket i2 _ _) = i1 == i2
+  (Ticket i1 _ _ _) == (Ticket i2 _ _ _) = i1 == i2
+
+
+data AuthData = AuthData
+  { authDataId      :: Int
+  , authDataUser    :: Int
+  , authDataMethod  :: AuthMethod
+  , authDataPayload :: Maybe T.Text
+  }
+  deriving (Show)
