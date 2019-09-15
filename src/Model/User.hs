@@ -145,19 +145,20 @@ userBalanceSelect conn uid = do
 
 
 insertUser
-  :: UserSubmit
+  :: T.Text
+  -> Maybe T.Text
   -> Day
   -> PGS.Connection
   -> MateHandler Int
-insertUser us now conn = fmap head $ liftIO $ runInsert_ conn $ Insert
+insertUser ident email now conn = fmap head $ liftIO $ runInsert_ conn $ Insert
   { iTable = userTable
   , iRows  =
     [
     ( C.constant (Nothing :: Maybe Int)
-    , C.constant (userSubmitIdent us)
+    , C.constant ident
     , C.constant (0 :: Int)
     , C.constant now
-    , C.constant (userSubmitEmail us)
+    , C.constant email
     , C.constant (Nothing :: Maybe Int)
     )
     ]

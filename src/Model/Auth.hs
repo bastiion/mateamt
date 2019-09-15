@@ -147,9 +147,23 @@ getUserAuthInfo uid method conn = do
 putUserAuthInfo
   :: Int
   -> AuthMethod
+  -> T.Text
   -> PGS.Connection
   -> MateHandler Int
-putUserAuthInfo uid method conn = error "Not yet implemented: putUserAuthInfo"
+putUserAuthInfo uid method payload conn = 
+  fmap head $ liftIO $ runInsert_ conn $ Insert
+    { iTable = authDataTable
+    , iRows =
+      [
+      ( C.constant (Nothing :: Maybe Int)
+      , C.constant uid
+      , C.constant (fromEnum method)
+      , C.constant payload
+      )
+      ]
+    , iReturning = rReturning (\(adid, _, _, _) -> adid)
+    , iOnConflict = Nothing
+    }
 
 
 validateToken

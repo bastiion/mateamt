@@ -41,9 +41,9 @@ instance FromJSON UserSummary
 
 
 data UserSubmit = UserSubmit
-  { userSubmitIdent :: T.Text
-  , userSubmitEmail :: Maybe T.Text
-  --, userSubmitPin   :: Maybe T.Text
+  { userSubmitIdent    :: T.Text
+  , userSubmitEmail    :: Maybe T.Text
+  , userSubmitPassHash :: T.Text
   }
   deriving (Generic, Show)
 

@@ -23,10 +23,12 @@ import Model
 userNew
   :: UserSubmit
   -> MateHandler Int
-userNew us = do
+userNew (UserSubmit ident email passhash) = do
   now <- liftIO $ getCurrentTime
   conn <- rsConnection <$> ask
-  insertUser us (utctDay now) conn
+  uid <- insertUser ident email (utctDay now) conn
+  void $ putUserAuthInfo uid PrimaryPass passhash conn
+  return uid
 
 userGet
   :: Maybe (Int, AuthMethod)
