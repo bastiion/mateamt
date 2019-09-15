@@ -14,7 +14,10 @@ import Data.Maybe (fromMaybe)
 import Types
 import Model
 
-productNew :: Maybe Int -> ProductSubmit -> MateHandler Int
+productNew
+  :: Maybe (Int, AuthMethod)
+  -> ProductSubmit
+  -> MateHandler Int
 productNew (Just _) bevsub = do
   conn <- rsConnection <$> ask
   bevid <- insertProduct bevsub conn
@@ -23,12 +26,17 @@ productNew (Just _) bevsub = do
 productNew Nothing _ =
   throwError $ err401
 
-productOverview :: Int -> MateHandler ProductOverview
+productOverview
+  :: Int
+  -> MateHandler ProductOverview
 productOverview pid = do
   conn <- rsConnection <$> ask
   productOverviewSelectSingle pid conn
 
-productStockRefill :: Maybe Int -> [AmountRefill] -> MateHandler ()
+productStockRefill
+  :: Maybe (Int, AuthMethod)
+  -> [AmountRefill]
+  -> MateHandler ()
 productStockRefill (Just _) amorefs = do
   if all ((>= 0) . amountRefillAmount) amorefs
   then do
@@ -43,7 +51,10 @@ productStockRefill Nothing _ =
     { errBody = "No Authentication present."
     }
 
-productStockUpdate :: Maybe Int -> [AmountUpdate] -> MateHandler ()
+productStockUpdate
+  :: Maybe (Int, AuthMethod)
+  -> [AmountUpdate]
+  -> MateHandler ()
 productStockUpdate (Just _) amoups = do
   if all ((>= 0) . amountUpdateRealAmount) amoups
   then do
@@ -58,7 +69,9 @@ productStockUpdate Nothing _ =
     { errBody = "No Authentication present."
     }
 
-productList :: Maybe ProductRefine -> MateHandler [ProductOverview]
+productList
+  :: Maybe ProductRefine
+  -> MateHandler [ProductOverview]
 productList mrefine = do
   conn <- rsConnection <$> ask
   productOverviewSelect (fromMaybe AvailableProducts mrefine) conn

@@ -28,13 +28,10 @@ import Data.Text.Encoding
 
 import qualified Data.Set as S
 
-import Data.Time.Calendar (Day)
 import Data.Time.Clock
 
 import Data.ByteString (ByteString)
 import Data.ByteString.Random
-
-import Data.Maybe (fromMaybe)
 
 import Opaleye hiding (null)
 import qualified Opaleye.Constant as C
@@ -43,8 +40,6 @@ import qualified Opaleye.Constant as C
 
 import Types.Auth
 import Types.Reader
-
-import Model.User
 
 
 initToken :: PGS.Query
@@ -112,12 +107,17 @@ authDataTable = table "auth_data" (
 delayTime :: Int
 delayTime = 1 * 10 ^ (6 :: Int)
 
+
+generateRandomText :: IO T.Text
+generateRandomText = decodeUtf8 <$> random 23
+
+
 getUserAuthInfo
   :: Int
   -> AuthMethod
+  -> PGS.Connection
   -> MateHandler AuthInfo
-getUserAuthInfo uid method = do
-  conn <- rsConnection <$> ask
+getUserAuthInfo uid method conn = do
   authdata <- liftIO $ do
     void $ threadDelay delayTime
     runSelect conn (
@@ -135,19 +135,27 @@ getUserAuthInfo uid method = do
   then
     -- generate mock AuthInfo
     liftIO $ do
-      rand1 <- decodeUtf8 <$> random 23
+      rand1 <- generateRandomText
       rand2 <- case method of
-        ChallengeResponse -> Just <$> decodeUtf8 <$> random 23
+        ChallengeResponse -> Just <$> generateRandomText
         _                 -> return Nothing
       return $ AuthInfo rand2 (AuthTicket rand1)
   else
     uncurry AuthInfo <$> newTicket uid method
 
 
+putUserAuthInfo
+  :: Int
+  -> AuthMethod
+  -> PGS.Connection
+  -> MateHandler Int
+putUserAuthInfo uid method conn = error "Not yet implemented: putUserAuthInfo"
+
+
 validateToken
   :: ByteString
   -> PGS.Connection
-  -> Handler (Maybe Int)
+  -> Handler (Maybe (Int, AuthMethod))
 validateToken header conn = do
   tokens <- liftIO $ runSelect conn (
     keepWhen (\(tstr, _, _, _) ->
@@ -163,7 +171,7 @@ validateToken header conn = do
     [(_, uid, stamp, method)] -> do
       now <- liftIO $ getCurrentTime
       if diffUTCTime stamp now > 0
-      then return $ Just uid
+      then return $ Just (uid, toEnum method)
       else do
         void $ deleteToken (decodeUtf8 header) conn
         liftIO $ threadDelay delayTime
@@ -180,9 +188,9 @@ validateToken header conn = do
 generateToken
   :: Ticket
   -> AuthResponse
+  -> PGS.Connection
   -> MateHandler AuthResult
-generateToken (Ticket _ tuid _ (method, pl)) (AuthResponse response) = do
-  conn <- rsConnection <$> ask
+generateToken (Ticket _ tuid _ (method, pl)) (AuthResponse response) conn = do
   authData <- liftIO $ runSelect conn (
     keepWhen (\(_, auid, amethod, _) ->
       auid .== C.constant tuid .&& amethod .== C.constant (fromEnum method))
@@ -202,7 +210,7 @@ generateToken (Ticket _ tuid _ (method, pl)) (AuthResponse response) = do
   if authResult
   then do
     token <- liftIO $ Token
-      <$> (decodeUtf8 <$> random 23)
+      <$> generateRandomText
       <*> pure tuid
       <*> (addUTCTime (23*60) <$> getCurrentTime)
       <*> pure method
@@ -263,9 +271,9 @@ deleteTokenByUserId uid conn = liftIO $ runDelete_ conn $ Delete
 newTicket :: Int -> AuthMethod -> MateHandler (Maybe T.Text, AuthTicket)
 newTicket ident method = do
   store <- rsTicketStore <$> ask
-  rand1 <- liftIO $ (decodeUtf8 <$> random 23)
+  rand1 <- liftIO $ generateRandomText
   rand2 <- liftIO $ case method of
-    ChallengeResponse -> Just <$> (decodeUtf8 <$> random 23)
+    ChallengeResponse -> Just <$> generateRandomText
     _                 -> return Nothing
   later <- liftIO $ (addUTCTime 23 <$> getCurrentTime)
   let ticket = Ticket
@@ -280,9 +288,10 @@ newTicket ident method = do
 
 processAuthRequest
   :: AuthRequest
+  -> S.Set Ticket
+  -> PGS.Connection
   -> MateHandler AuthResult
-processAuthRequest (AuthRequest aticket hash) = do
-  store <- liftIO . readTVarIO =<< rsTicketStore <$> ask
+processAuthRequest (AuthRequest aticket hash) store conn = do
   let mticket = S.filter (\st -> ticketId st == aticket) store
   case S.toList mticket of
     [ticket] -> do
@@ -297,12 +306,12 @@ processAuthRequest (AuthRequest aticket hash) = do
             pure 1 <*>
             liftIO getCurrentTime <*>
             pure (PrimaryPass, Nothing)
-          generateToken mockticket hash
+          generateToken mockticket hash conn
 #else
         return Denied
 #endif
       else
-        generateToken ticket hash
+        generateToken ticket hash conn
     _        -> do
       liftIO $ threadDelay delayTime
 #if defined(DEVELOP)
@@ -312,14 +321,14 @@ processAuthRequest (AuthRequest aticket hash) = do
           pure 1 <*>
           liftIO getCurrentTime <*>
           pure (PrimaryPass, Nothing)
-        generateToken mockticket hash
+        generateToken mockticket hash conn
 #else
       return Denied
 #endif
 
 processLogout
   :: Int
+  -> PGS.Connection
   -> MateHandler ()
-processLogout uid = do
-  conn <- rsConnection <$> ask
+processLogout uid conn = do
   void $ deleteTokenByUserId uid conn

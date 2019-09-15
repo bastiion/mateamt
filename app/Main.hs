@@ -88,20 +88,20 @@ app initState =
 mateApi :: Proxy MateAPI
 mateApi = Proxy
 
-authProxy :: Proxy '[ AuthHandler Request (Maybe Int) ]
+authProxy :: Proxy '[ AuthHandler Request (Maybe (Int, AuthMethod)) ]
 authProxy = Proxy
 
 genAuthServerContext
   :: Connection
-  -> Context '[ AuthHandler Request (Maybe Int) ]
+  -> Context '[ AuthHandler Request (Maybe (Int, AuthMethod)) ]
 genAuthServerContext conn = authHandler conn Servant.:. EmptyContext
 
-type instance AuthServerData (AuthProtect "header-auth") = Maybe Int
+type instance AuthServerData (AuthProtect "header-auth") = Maybe (Int, AuthMethod)
 
-authHandler :: Connection -> AuthHandler Request (Maybe Int)
+authHandler :: Connection -> AuthHandler Request (Maybe (Int, AuthMethod))
 authHandler conn = mkAuthHandler handler
   where
-    handler :: Request -> Handler (Maybe Int)
+    handler :: Request -> Handler (Maybe (Int, AuthMethod))
     handler req = do
       let headers = requestHeaders req
       res <- case lookup "Authentication" headers of

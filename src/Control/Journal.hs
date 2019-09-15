@@ -11,7 +11,7 @@ import Types
 import Model.Journal
 
 journalShow
-  :: Maybe Int
+  :: Maybe (Int, AuthMethod)
   -> Maybe Int
   -> Maybe Int
   -> MateHandler [JournalEntry]

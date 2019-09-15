@@ -43,7 +43,7 @@ avatarGet aid = do
     ) :: Application)
 
 avatarInsert
-  :: Maybe Int
+  :: Maybe (Int, AuthMethod)
   -> AvatarData
   -> MateHandler Int
 avatarInsert (Just _) ad = do
@@ -55,7 +55,7 @@ avatarInsert Nothing _ =
     }
 
 avatarUpdate
-  :: Maybe Int
+  :: Maybe (Int, AuthMethod)
   -> Int
   -> AvatarData
   -> MateHandler ()

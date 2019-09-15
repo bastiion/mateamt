@@ -20,8 +20,7 @@ import Types
 type MateAPI =
   "auth" :> "get" :> ReqBody '[JSON] TicketRequest :> Post '[JSON] AuthInfo
   :<|> "auth" :> ReqBody '[JSON] AuthRequest :> Post '[JSON] AuthResult
-  :<|> "auth" :> AuthProtect "header-auth" :> ReqBody '[JSON] Int
-    :> Delete '[JSON] ()
+  :<|> "auth" :> AuthProtect "header-auth" :> Delete '[JSON] ()
 
   :<|> "user" :> ReqBody '[JSON] UserSubmit :> Post '[JSON] Int
   :<|> "user" :> AuthProtect "header-auth"

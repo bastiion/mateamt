@@ -11,10 +11,10 @@ import Types
 import Model
 
 buy
-  :: Maybe Int
+  :: Maybe (Int, AuthMethod)
   -> [PurchaseDetail]
   -> MateHandler PurchaseResult
-buy (Just auid) pds = do
+buy (Just (auid, _)) pds = do
   conn <- rsConnection <$> ask
   (missing, real) <- foldM (\(ms, rs) pd -> do
     mmiss <- checkProductAvailability pd conn
