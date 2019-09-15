@@ -118,7 +118,7 @@ data Ticket = Ticket
   { ticketId     :: AuthTicket
   , ticketUser   :: Int
   , ticketExpiry :: UTCTime
-  , ticketMethod :: AuthMethod
+  , ticketMethod :: (AuthMethod, Maybe T.Text)
   }
   deriving (Show, Ord)
 
@@ -130,6 +130,6 @@ data AuthData = AuthData
   { authDataId      :: Int
   , authDataUser    :: Int
   , authDataMethod  :: AuthMethod
-  , authDataPayload :: Maybe T.Text
+  , authDataPayload :: T.Text
   }
   deriving (Show)

@@ -84,7 +84,7 @@ initAuthData = mconcat
   , "auth_data_id      SERIAL  PRIMARY KEY,"
   , "auth_data_user    INTEGER NOT NULL REFERENCES \"user\"(\"user_id\") ON DELETE CASCADE,"
   , "auth_data_method  INTEGER NOT NULL,"
-  , "auth_data_payload TEXT"
+  , "auth_data_payload TEXT    NOT NULL"
   , ")"
   ]
 
@@ -92,12 +92,12 @@ authDataTable :: Table
   ( Maybe (Field SqlInt4)
   , Field SqlInt4
   , Field SqlInt4
-  , FieldNullable SqlText
+  , Field SqlText
   )
   ( Field SqlInt4
   , Field SqlInt4
   , Field SqlInt4
-  , FieldNullable SqlText
+  , Field SqlText
   )
 authDataTable = table "auth_data" (
   p4
@@ -115,7 +115,7 @@ delayTime = 1 * 10 ^ (6 :: Int)
 getUserAuthInfo
   :: Int
   -> AuthMethod
-  -> MateHandler (Maybe AuthInfo)
+  -> MateHandler AuthInfo
 getUserAuthInfo uid method = do
   conn <- rsConnection <$> ask
   authdata <- liftIO $ do
@@ -128,17 +128,20 @@ getUserAuthInfo uid method = do
           [ ( Int
             , Int
             , Int
-            , Maybe T.Text
+            , T.Text
             )
           ]
   if null authdata
   then
-    return Nothing
+    -- generate mock AuthInfo
+    liftIO $ do
+      rand1 <- decodeUtf8 <$> random 23
+      rand2 <- case method of
+        ChallengeResponse -> Just <$> decodeUtf8 <$> random 23
+        _                 -> return Nothing
+      return $ AuthInfo rand2 (AuthTicket rand1)
   else
-    Just <$> head <$> mapM (\(_, _, _, payload) ->
-        AuthInfo payload <$> newTicket uid method
-        )
-      authdata
+    uncurry AuthInfo <$> newTicket uid method
 
 
 validateToken
@@ -178,20 +181,25 @@ generateToken
   :: Ticket
   -> AuthResponse
   -> MateHandler AuthResult
-generateToken (Ticket _ tuid _ method) (AuthResponse hash) = do
+generateToken (Ticket _ tuid _ (method, pl)) (AuthResponse response) = do
   conn <- rsConnection <$> ask
   authData <- liftIO $ runSelect conn (
-    keepWhen (\(_, auid, _, _) ->
-      auid .== C.constant tuid) <<< queryTable authDataTable
+    keepWhen (\(_, auid, amethod, _) ->
+      auid .== C.constant tuid .&& amethod .== C.constant (fromEnum method))
+        <<< queryTable authDataTable
     ) :: MateHandler
         [ ( Int
           , Int
           , Int
-          , Maybe T.Text
+          , T.Text
           )
         ]
-  let userHash = head $ map (\(_, _, _, payload) -> payload) authData
-  if userHash == Nothing || userHash == Just hash
+  let userPayloads = map (\(_, _, _, payload) -> payload) authData
+      authResult = case method of
+        PrimaryPass       -> validatePass response userPayloads
+        SecondaryPass     -> validatePass response userPayloads
+        ChallengeResponse -> validateChallengeResponse response userPayloads
+  if authResult
   then do
     token <- liftIO $ Token
       <$> (decodeUtf8 <$> random 23)
@@ -202,6 +210,11 @@ generateToken (Ticket _ tuid _ method) (AuthResponse hash) = do
     return $ Granted (AuthToken $ tokenString token)
   else
     return Denied
+  where
+    validatePass provided presents =
+      any (\present -> provided == present) presents
+    validateChallengeResponse provided presents =
+      error "Validation of challnge response authentication not yet implemented"
 
 
 insertToken
@@ -247,19 +260,22 @@ deleteTokenByUserId uid conn = liftIO $ runDelete_ conn $ Delete
   }
 
 
-newTicket :: Int -> AuthMethod -> MateHandler AuthTicket
+newTicket :: Int -> AuthMethod -> MateHandler (Maybe T.Text, AuthTicket)
 newTicket ident method = do
   store <- rsTicketStore <$> ask
-  rand <- liftIO $ (decodeUtf8 <$> random 23)
+  rand1 <- liftIO $ (decodeUtf8 <$> random 23)
+  rand2 <- liftIO $ case method of
+    ChallengeResponse -> Just <$> (decodeUtf8 <$> random 23)
+    _                 -> return Nothing
   later <- liftIO $ (addUTCTime 23 <$> getCurrentTime)
   let ticket = Ticket
-        { ticketId     = AuthTicket rand
+        { ticketId     = AuthTicket rand1
         , ticketUser   = ident
         , ticketExpiry = later
-        , ticketMethod = method
+        , ticketMethod = (method, rand2)
         }
   liftIO $ atomically $ modifyTVar store (\s -> S.insert ticket s)
-  return (AuthTicket rand)
+  return (rand2, AuthTicket rand1)
 
 
 processAuthRequest
@@ -280,7 +296,7 @@ processAuthRequest (AuthRequest aticket hash) = do
             pure aticket <*>
             pure 1 <*>
             liftIO getCurrentTime <*>
-            pure PrimaryPass
+            pure (PrimaryPass, Nothing)
           generateToken mockticket hash
 #else
         return Denied
@@ -295,7 +311,7 @@ processAuthRequest (AuthRequest aticket hash) = do
           pure aticket <*>
           pure 1 <*>
           liftIO getCurrentTime <*>
-          pure PrimaryPass
+          pure (PrimaryPass, Nothing)
         generateToken mockticket hash
 #else
       return Denied
