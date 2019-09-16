@@ -62,6 +62,10 @@ app initState =
         authSend :<|>
         authLogout :<|>
 
+        authManageList :<|>
+        authManageNewAuth :<|>
+        authManageDeleteAuth :<|>
+
         userNew :<|>
         userGet :<|>
         userUpdate :<|>

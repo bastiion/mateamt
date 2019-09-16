@@ -27,7 +27,7 @@ userNew (UserSubmit ident email passhash) = do
   now <- liftIO $ getCurrentTime
   conn <- rsConnection <$> ask
   uid <- insertUser ident email (utctDay now) conn
-  void $ putUserAuthInfo uid PrimaryPass passhash conn
+  void $ putUserAuthInfo uid PrimaryPass "Initial password" passhash conn
   return uid
 
 userGet
@@ -50,19 +50,18 @@ userGet (Just (aid, method)) uid =
 
 userUpdate
   :: Maybe (Int, AuthMethod)
-  -> Int
   -> UserDetailsSubmit
   -> MateHandler ()
-userUpdate Nothing _ _ =
+userUpdate Nothing _ =
   throwError $ err401
     { errBody = "No Authentication present."
     }
-userUpdate (Just (aid, method)) uid uds =
-  if aid == uid && any (== method) [PrimaryPass, ChallengeResponse]
+userUpdate (Just (aid, method)) uds =
+  if any (== method) [PrimaryPass, ChallengeResponse]
   then do
     now <- liftIO $ getCurrentTime
     conn <- rsConnection <$> ask
-    void $ updateUserDetails uid uds (utctDay now) conn
+    void $ updateUserDetails aid uds (utctDay now) conn
   else
     throwError $ err401
       { errBody = "Wrong Authentication present."

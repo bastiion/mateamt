@@ -1,11 +1,12 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE Arrows #-}
 module Model.Auth where
 
 import Servant
 
-import Control.Arrow ((<<<))
+import Control.Arrow
 
 import Control.Monad (void)
 
@@ -17,7 +18,7 @@ import Control.Concurrent (threadDelay)
 
 import Control.Concurrent.STM
 
-import Data.Profunctor.Product (p4)
+import Data.Profunctor.Product (p4, p5)
 
 import qualified Database.PostgreSQL.Simple as PGS
 
@@ -79,6 +80,7 @@ initAuthData = mconcat
   , "auth_data_id      SERIAL  PRIMARY KEY,"
   , "auth_data_user    INTEGER NOT NULL REFERENCES \"user\"(\"user_id\") ON DELETE CASCADE,"
   , "auth_data_method  INTEGER NOT NULL,"
+  , "auth_data_comment TEXT    NOT NULL,"
   , "auth_data_payload TEXT    NOT NULL"
   , ")"
   ]
@@ -88,17 +90,20 @@ authDataTable :: Table
   , Field SqlInt4
   , Field SqlInt4
   , Field SqlText
+  , Field SqlText
   )
   ( Field SqlInt4
   , Field SqlInt4
   , Field SqlInt4
   , Field SqlText
+  , Field SqlText
   )
 authDataTable = table "auth_data" (
-  p4
+  p5
     ( tableField "auth_data_id"
     , tableField "auth_data_user"
     , tableField "auth_data_method"
+    , tableField "auth_data_comment"
     , tableField "auth_data_payload"
     )
   )
@@ -112,6 +117,29 @@ generateRandomText :: IO T.Text
 generateRandomText = decodeUtf8 <$> random 23
 
 
+selectAuthOverviews
+  :: Int
+  -> PGS.Connection
+  -> MateHandler [AuthOverview]
+selectAuthOverviews uid conn = do
+  authData <- liftIO $ runSelect conn ( proc () -> do
+    (adid, aduid, admethod, adcomment, adpayload) <-
+      queryTable authDataTable -< ()
+    restrict -< aduid .== C.constant uid
+    returnA -< (adid, adcomment, admethod)
+    ) :: MateHandler
+        [ ( Int
+          , T.Text
+          , Int
+          )
+        ]
+  return $ map
+    (\(adid, adcomment, admethod) ->
+      AuthOverview adid adcomment (toEnum admethod)
+      )
+    authData
+
+
 getUserAuthInfo
   :: Int
   -> AuthMethod
@@ -121,13 +149,14 @@ getUserAuthInfo uid method conn = do
   authdata <- liftIO $ do
     void $ threadDelay delayTime
     runSelect conn (
-      keepWhen (\(_, duid, dmethod, _) ->
+      keepWhen (\(_, duid, dmethod, _, _) ->
         duid .== C.constant uid .&& dmethod .== C.constant (fromEnum method))
           <<< queryTable authDataTable
       ) :: IO
           [ ( Int
             , Int
             , Int
+            , T.Text
             , T.Text
             )
           ]
@@ -148,9 +177,10 @@ putUserAuthInfo
   :: Int
   -> AuthMethod
   -> T.Text
+  -> T.Text
   -> PGS.Connection
   -> MateHandler Int
-putUserAuthInfo uid method payload conn = 
+putUserAuthInfo uid method comment payload conn =
   fmap head $ liftIO $ runInsert_ conn $ Insert
     { iTable = authDataTable
     , iRows =
@@ -158,12 +188,24 @@ putUserAuthInfo uid method payload conn =
       ( C.constant (Nothing :: Maybe Int)
       , C.constant uid
       , C.constant (fromEnum method)
+      , C.constant comment
       , C.constant payload
       )
       ]
-    , iReturning = rReturning (\(adid, _, _, _) -> adid)
+    , iReturning = rReturning (\(adid, _, _, _, _) -> adid)
     , iOnConflict = Nothing
     }
+
+
+deleteAuthDataById
+  :: Int
+  -> PGS.Connection
+  -> MateHandler Int64
+deleteAuthDataById adid conn = liftIO $ runDelete_ conn $ Delete
+  { dTable     = authDataTable
+  , dWhere     = (\(aid, _, _, _, _) -> aid .== C.constant adid)
+  , dReturning = rCount
+  }
 
 
 validateToken
@@ -206,7 +248,7 @@ generateToken
   -> MateHandler AuthResult
 generateToken (Ticket _ tuid _ (method, pl)) (AuthResponse response) conn = do
   authData <- liftIO $ runSelect conn (
-    keepWhen (\(_, auid, amethod, _) ->
+    keepWhen (\(_, auid, amethod, _, _) ->
       auid .== C.constant tuid .&& amethod .== C.constant (fromEnum method))
         <<< queryTable authDataTable
     ) :: MateHandler
@@ -214,9 +256,10 @@ generateToken (Ticket _ tuid _ (method, pl)) (AuthResponse response) conn = do
           , Int
           , Int
           , T.Text
+          , T.Text
           )
         ]
-  let userPayloads = map (\(_, _, _, payload) -> payload) authData
+  let userPayloads = map (\(_, _, _, _, payload) -> payload) authData
       authResult = case method of
         PrimaryPass       -> validatePass response userPayloads
         SecondaryPass     -> validatePass response userPayloads

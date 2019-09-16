@@ -53,6 +53,19 @@ instance ToJSON AuthMethod where
 instance FromJSON AuthMethod
 
 
+data AuthSubmit = AuthSubmit
+  { authSubmitMethod  :: AuthMethod
+  , authSubmitComment :: T.Text
+  , authSubmitPayload :: T.Text
+  }
+  deriving (Show, Generic)
+
+instance ToJSON AuthSubmit where
+  toEncoding = genericToEncoding defaultOptions
+
+instance FromJSON AuthSubmit
+
+
 newtype AuthTicket = AuthTicket T.Text deriving (Show, Generic, Eq, Ord)
 
 instance ToJSON AuthTicket where
@@ -130,6 +143,20 @@ data AuthData = AuthData
   { authDataId      :: Int
   , authDataUser    :: Int
   , authDataMethod  :: AuthMethod
+  , authDataComment :: T.Text
   , authDataPayload :: T.Text
   }
   deriving (Show)
+
+
+data AuthOverview = AuthOverview
+  { authOverviewId      :: Int
+  , authOverviewComment :: T.Text
+  , authOverviewMethod  :: AuthMethod
+  }
+  deriving (Show, Generic)
+
+instance ToJSON AuthOverview where
+  toEncoding = genericToEncoding defaultOptions
+
+instance FromJSON AuthOverview
