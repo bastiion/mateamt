@@ -11,7 +11,10 @@
 module API where
 
 import Servant.API
+import Servant.Links
 import Servant.RawM
+
+import Data.Proxy
 
 -- internal imports
 
@@ -62,3 +65,35 @@ type MateAPI =
   :<|> "avatar" :> AuthProtect "header-auth" :> Capture "id" Int
     :> ReqBody '[JSON] AvatarData :> Patch '[JSON] ()
   :<|> "avatar" :> "list" :> Get '[JSON] [Avatar]
+
+
+( authGetLink :<|>
+  authSendLink :<|>
+  authLogoutLink :<|>
+
+  authManageListLink :<|>
+  authManageNewAuthLink :<|>
+  authManageDeleteAuthLink :<|>
+
+  userNewLink :<|>
+  userGetLink :<|>
+  userUpdateLink :<|>
+  userListLink :<|>
+  userRechargeLink :<|>
+  userTransferLink :<|>
+
+  productNewLink :<|>
+  productOverviewLink :<|>
+  productStockRefillLink :<|>
+  productStockUpdateLink :<|>
+  productListLink :<|>
+
+  buyLink :<|>
+
+  journalShowLink :<|>
+
+  avatarGetLink :<|>
+  avaterInsertLink :<|>
+  avatarUpdateLink :<|>
+  avatarListLink
+  ) = allLinks (Proxy :: Proxy MateAPI)
