@@ -78,6 +78,7 @@ app initState =
         productStockRefill :<|>
         productStockUpdate :<|>
         productList :<|>
+        productShortList :<|>
 
         buy :<|>
 

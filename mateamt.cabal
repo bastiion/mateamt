@@ -85,6 +85,7 @@ library
                      , http-api-data
                      , bytestring
                      , base16-bytestring
+                     , base64-bytestring
                      , random-bytestring
                      , containers
                      , stm

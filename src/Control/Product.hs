@@ -75,3 +75,10 @@ productList
 productList mrefine = do
   conn <- rsConnection <$> ask
   productOverviewSelect (fromMaybe AvailableProducts mrefine) conn
+
+productShortList
+  :: Maybe ProductRefine
+  -> MateHandler [ProductShortOverview]
+productShortList mrefine = do
+  conn <- rsConnection <$> ask
+  productShortOverviewSelect (fromMaybe AvailableProducts mrefine) conn

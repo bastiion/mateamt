@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE Arrows #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Model.Auth where
 
 import Servant
@@ -9,13 +10,10 @@ import Servant
 import Control.Arrow
 
 import Control.Monad (void)
-
 import Control.Monad.IO.Class (liftIO)
-
 import Control.Monad.Reader (ask)
 
 import Control.Concurrent (threadDelay)
-
 import Control.Concurrent.STM
 
 import Data.Profunctor.Product (p4, p5)
@@ -31,8 +29,10 @@ import qualified Data.Set as S
 
 import Data.Time.Clock
 
-import Data.ByteString (ByteString)
+import Data.ByteString as B (ByteString, drop)
 import Data.ByteString.Random
+import qualified Data.ByteString.Base64 as B64
+import qualified Data.ByteString.Base16 as B16
 
 import Opaleye hiding (null)
 import qualified Opaleye.Constant as C
@@ -81,7 +81,7 @@ initAuthData = mconcat
   , "auth_data_user    INTEGER NOT NULL REFERENCES \"user\"(\"user_id\") ON DELETE CASCADE,"
   , "auth_data_method  INTEGER NOT NULL,"
   , "auth_data_comment TEXT    NOT NULL,"
-  , "auth_data_payload TEXT    NOT NULL"
+  , "auth_data_payload BYTEA   NOT NULL"
   , ")"
   ]
 
@@ -90,13 +90,13 @@ authDataTable :: Table
   , Field SqlInt4
   , Field SqlInt4
   , Field SqlText
-  , Field SqlText
+  , Field SqlBytea
   )
   ( Field SqlInt4
   , Field SqlInt4
   , Field SqlInt4
   , Field SqlText
-  , Field SqlText
+  , Field SqlBytea
   )
 authDataTable = table "auth_data" (
   p5
@@ -114,7 +114,7 @@ delayTime = 1 * 10 ^ (6 :: Int)
 
 
 generateRandomText :: IO T.Text
-generateRandomText = decodeUtf8 <$> random 23
+generateRandomText = decodeUtf8 <$> B64.encode <$> random 23
 
 
 selectAuthOverviews
@@ -122,7 +122,7 @@ selectAuthOverviews
   -> PGS.Connection
   -> MateHandler [AuthOverview]
 selectAuthOverviews uid conn = do
-  authData <- liftIO $ runSelect conn ( proc () -> do
+  authData <- liftIO $ runSelect conn (proc () -> do
     (adid, aduid, admethod, adcomment, adpayload) <-
       queryTable authDataTable -< ()
     restrict -< aduid .== C.constant uid
@@ -146,20 +146,24 @@ getUserAuthInfo
   -> PGS.Connection
   -> MateHandler AuthInfo
 getUserAuthInfo uid method conn = do
-  authdata <- liftIO $ do
-    void $ threadDelay delayTime
-    runSelect conn (
-      keepWhen (\(_, duid, dmethod, _, _) ->
-        duid .== C.constant uid .&& dmethod .== C.constant (fromEnum method))
-          <<< queryTable authDataTable
-      ) :: IO
-          [ ( Int
-            , Int
-            , Int
-            , T.Text
-            , T.Text
-            )
-          ]
+  authdata <- map (\(aid, auid, amethod, acomment, apayload) ->
+    (aid, auid, amethod, acomment, (decodeUtf8 $ B64.encode apayload))) <$>
+    (liftIO $ do
+      void $ threadDelay delayTime
+      runSelect conn (proc () -> do
+        (aid, auid, amethod, acomment, apayload) <-
+          queryTable authDataTable -< ()
+        restrict -<
+          auid .== C.constant uid .&& amethod .== C.constant (fromEnum method)
+        returnA -< (aid, auid, amethod, acomment, apayload)
+        ) :: IO
+            [ ( Int
+              , Int
+              , Int
+              , T.Text
+              , ByteString
+              )
+            ])
   if null authdata
   then
     -- generate mock AuthInfo
@@ -189,7 +193,7 @@ putUserAuthInfo uid method comment payload conn =
       , C.constant uid
       , C.constant (fromEnum method)
       , C.constant comment
-      , C.constant payload
+      , C.constant (encodeUtf8 payload)
       )
       ]
     , iReturning = rReturning (\(adid, _, _, _, _) -> adid)
@@ -246,7 +250,7 @@ generateToken
   -> AuthResponse
   -> PGS.Connection
   -> MateHandler AuthResult
-generateToken (Ticket _ tuid _ (method, pl)) (AuthResponse response) conn = do
+generateToken (Ticket _ tuid _ (method, pl)) (AuthResponse rawresponse) conn = do
   authData <- liftIO $ runSelect conn (
     keepWhen (\(_, auid, amethod, _, _) ->
       auid .== C.constant tuid .&& amethod .== C.constant (fromEnum method))
@@ -256,14 +260,17 @@ generateToken (Ticket _ tuid _ (method, pl)) (AuthResponse response) conn = do
           , Int
           , Int
           , T.Text
-          , T.Text
+          , ByteString
           )
         ]
-  let userPayloads = map (\(_, _, _, _, payload) -> payload) authData
+  let userPayloads = map (\(_, _, _, _, payload) ->
+        (decodeUtf8 $ fst $ B16.decode $ B.drop 2 payload)) authData
+      response = rawresponse
       authResult = case method of
         PrimaryPass       -> validatePass response userPayloads
         SecondaryPass     -> validatePass response userPayloads
         ChallengeResponse -> validateChallengeResponse response userPayloads
+  liftIO $ print (response : userPayloads)
   if authResult
   then do
     token <- liftIO $ Token
@@ -279,7 +286,7 @@ generateToken (Ticket _ tuid _ (method, pl)) (AuthResponse response) conn = do
     validatePass provided presents =
       any (\present -> provided == present) presents
     validateChallengeResponse provided presents =
-      error "Validation of challnge response authentication not yet implemented"
+      error "Validation of challenge response authentication not yet implemented"
 
 
 insertToken
@@ -352,6 +359,7 @@ processAuthRequest (AuthRequest aticket hash) store conn = do
   let mticket = S.filter (\st -> ticketId st == aticket) store
   case S.toList mticket of
     [ticket] -> do
+      liftIO $ putStrLn "there is a ticket..."
       now <- liftIO $ getCurrentTime
       liftIO $ threadDelay delayTime
       if now > ticketExpiry ticket
@@ -367,7 +375,8 @@ processAuthRequest (AuthRequest aticket hash) store conn = do
 #else
         return Denied
 #endif
-      else
+      else do
+        liftIO $ putStrLn "...and it is valid"
         generateToken ticket hash conn
     _        -> do
       liftIO $ threadDelay delayTime

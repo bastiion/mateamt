@@ -52,6 +52,8 @@ type MateAPI =
     :> ReqBody '[JSON] [AmountUpdate] :> Put '[JSON] ()
   :<|> "product" :> "list" :> QueryParam "refine" ProductRefine
     :> Get '[JSON] [ProductOverview]
+  :<|> "product" :> "shortlist" :> QueryParam "refine" ProductRefine
+    :> Get '[JSON] [ProductShortOverview]
 
   :<|> "buy" :> AuthProtect "header-auth" :> ReqBody '[JSON] [PurchaseDetail]
     :> Post '[JSON] PurchaseResult
@@ -87,6 +89,7 @@ type MateAPI =
   productStockRefillLink :<|>
   productStockUpdateLink :<|>
   productListLink :<|>
+  productShortListLink :<|>
 
   buyLink :<|>
 
