@@ -5,7 +5,7 @@ import Servant
 
 import Control.Monad (void)
 
-import Control.Monad.Reader (ask)
+import Control.Monad.Reader (asks)
 
 import Data.Maybe (fromMaybe)
 
@@ -19,28 +19,28 @@ productNew
   -> ProductSubmit
   -> MateHandler Int
 productNew (Just _) bevsub = do
-  conn <- rsConnection <$> ask
+  conn <- asks rsConnection
   bevid <- insertProduct bevsub conn
   void $ insertNewEmptyAmount bevid bevsub conn
   return bevid
 productNew Nothing _ =
-  throwError $ err401
+  throwError err401
 
 productOverview
   :: Int
   -> MateHandler ProductOverview
 productOverview pid = do
-  conn <- rsConnection <$> ask
+  conn <- asks rsConnection
   productOverviewSelectSingle pid conn
 
 productStockRefill
   :: Maybe (Int, AuthMethod)
   -> [AmountRefill]
   -> MateHandler ()
-productStockRefill (Just _) amorefs = do
+productStockRefill (Just _) amorefs =
   if all ((>= 0) . amountRefillAmount) amorefs
   then do
-    conn <- rsConnection <$> ask
+    conn <- asks rsConnection
     void $ manualProductAmountRefill amorefs conn
   else
     throwError $ err400
@@ -55,10 +55,10 @@ productStockUpdate
   :: Maybe (Int, AuthMethod)
   -> [AmountUpdate]
   -> MateHandler ()
-productStockUpdate (Just _) amoups = do
+productStockUpdate (Just _) amoups =
   if all ((>= 0) . amountUpdateRealAmount) amoups
   then do
-    conn <- rsConnection <$> ask
+    conn <- asks rsConnection
     void $ manualProductAmountUpdate amoups conn
   else
     throwError $ err400
@@ -73,12 +73,12 @@ productList
   :: Maybe ProductRefine
   -> MateHandler [ProductOverview]
 productList mrefine = do
-  conn <- rsConnection <$> ask
+  conn <- asks rsConnection
   productOverviewSelect (fromMaybe AvailableProducts mrefine) conn
 
 productShortList
   :: Maybe ProductRefine
   -> MateHandler [ProductShortOverview]
 productShortList mrefine = do
-  conn <- rsConnection <$> ask
+  conn <- asks rsConnection
   productShortOverviewSelect (fromMaybe AvailableProducts mrefine) conn

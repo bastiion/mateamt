@@ -3,7 +3,7 @@ module Control.Buy where
 
 import Control.Monad (void, foldM)
 
-import Control.Monad.Reader (ask)
+import Control.Monad.Reader (asks)
 
 -- internal imports
 
@@ -15,13 +15,13 @@ buy
   -> [PurchaseDetail]
   -> MateHandler PurchaseResult
 buy (Just (auid, _)) pds = do
-  conn <- rsConnection <$> ask
+  conn <- asks rsConnection
   (missing, real) <- foldM (\(ms, rs) pd -> do
     mmiss <- checkProductAvailability pd conn
     case mmiss of
       Just miss -> return
         ( (pd {purchaseDetailAmount = miss}):ms
-        , (pd {purchaseDetailAmount = max 0 (purchaseDetailAmount pd - miss)}:rs)
+        , pd {purchaseDetailAmount = max 0 (purchaseDetailAmount pd - miss)}:rs
         )
       Nothing -> return
         ( ms
@@ -30,7 +30,7 @@ buy (Just (auid, _)) pds = do
     )
     ([], [])
     pds
-  void $ mapM_ (\pd -> postBuyProductAmountUpdate pd conn) real
+  mapM_ (`postBuyProductAmountUpdate` conn) real
   price <- foldM
     (\total pd ->
       fmap (+ total) (getLatestTotalPrice pd conn)
@@ -46,13 +46,13 @@ buy (Just (auid, _)) pds = do
     )
     missing
 buy Nothing pds = do
-  conn <- rsConnection <$> ask
+  conn <- asks rsConnection
   (missing, real) <- foldM (\(ms, rs) pd -> do
     mmiss <- checkProductAvailability pd conn
     case mmiss of
       Just miss -> return
         ( (pd {purchaseDetailAmount = miss}):ms
-        , (pd {purchaseDetailAmount = max 0 (purchaseDetailAmount pd - miss)}:rs)
+        , pd {purchaseDetailAmount = max 0 (purchaseDetailAmount pd - miss)}:rs
         )
       Nothing -> return
         ( ms
@@ -61,8 +61,8 @@ buy Nothing pds = do
     )
     ([], [])
     pds
-  void $ mapM_
-    (\pd -> postBuyProductAmountUpdate pd conn)
+  mapM_
+    (`postBuyProductAmountUpdate` conn)
     real
   price <- foldM
     (\total pd ->

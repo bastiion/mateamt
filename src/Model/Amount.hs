@@ -135,7 +135,7 @@ getLatestTotalPrice (PurchaseDetail pid amount) conn = do
         , Bool
         )
       ]
-  (amount *) <$> head <$> return (map
+  (amount *) . head <$> return (map
     (\(_, _, _, price, _) -> price)
     amounts
     )
@@ -145,7 +145,7 @@ checkProductAvailability
   -> PGS.Connection
   -> MateHandler (Maybe Int) -- | Returns maybe missing amount
 checkProductAvailability (PurchaseDetail pid amount) conn = do
-  realamount <- (\(_, _, ramount, _, _) -> ramount) <$> head <$>
+  realamount <- (\(_, _, ramount, _, _) -> ramount) . head <$>
     (liftIO $ runSelect conn $ limit 1 $
       orderBy (desc (\(_, ts, _, _, _) -> ts)) $
         keepWhen (\(id_, _, _, _, _) -> id_ .== C.constant pid) <<<
@@ -172,7 +172,7 @@ manualProductAmountUpdate aups conn =
   mapM
     (\(AmountUpdate pid amount) -> do
       oldprice <- getLatestPriceByProductId pid conn
-      head <$> (liftIO $ do
+      head <$> liftIO (do
         now <- getCurrentTime
         runInsert_ conn $ Insert
           { iTable = amountTable
@@ -202,7 +202,7 @@ manualProductAmountRefill aups conn =
     (\(AmountRefill pid amount) -> do
       oldamount <- getLatestAmountByProductId pid conn
       oldprice <- getLatestPriceByProductId pid conn
-      head <$> (liftIO $ do
+      head <$> liftIO (do
         now <- getCurrentTime
         runInsert_ conn $ Insert
           { iTable = amountTable
@@ -228,8 +228,8 @@ postBuyProductAmountUpdate
   -> PGS.Connection
   -> MateHandler Int
 postBuyProductAmountUpdate (PurchaseDetail pid pdamount) conn = do
-  now <- liftIO $ getCurrentTime
-  (amount, oldprice) <- (\(_, _, am, op, _) -> (am, op)) <$> head <$> (
+  now <- liftIO getCurrentTime
+  (amount, oldprice) <- (\(_, _, am, op, _) -> (am, op)) . head <$> (
     liftIO $ runSelect conn $ limit 1 $
       orderBy (desc (\(_, ts, _, _, _) -> ts)) $
         keepWhen (\(id_, _, _, _, _) -> id_ .== C.constant pid) <<<

@@ -5,7 +5,7 @@ import Servant
 
 import Control.Monad (void)
 
-import Control.Monad.Reader (ask)
+import Control.Monad.Reader (asks)
 
 import Control.Monad.IO.Class (liftIO)
 
@@ -24,8 +24,8 @@ userNew
   :: UserSubmit
   -> MateHandler Int
 userNew (UserSubmit ident email passhash) = do
-  now <- liftIO $ getCurrentTime
-  conn <- rsConnection <$> ask
+  now <- liftIO getCurrentTime
+  conn <- asks rsConnection
   uid <- insertUser ident email (utctDay now) conn
   void $ putUserAuthInfo uid PrimaryPass "Initial password" passhash conn
   return uid
@@ -38,7 +38,7 @@ userGet Nothing =
     { errBody = "No Authentication present."
     }
 userGet (Just (uid, _)) = do
-  conn <- rsConnection <$> ask
+  conn <- asks rsConnection
   userDetailsSelect uid conn
 
 userUpdate
@@ -50,10 +50,10 @@ userUpdate Nothing _ =
     { errBody = "No Authentication present."
     }
 userUpdate (Just (aid, method)) uds =
-  if any (== method) [PrimaryPass, ChallengeResponse]
+  if elem method [PrimaryPass, ChallengeResponse]
   then do
-    now <- liftIO $ getCurrentTime
-    conn <- rsConnection <$> ask
+    now <- liftIO getCurrentTime
+    conn <- asks rsConnection
     void $ updateUserDetails aid uds (utctDay now) conn
   else
     throwError $ err401
@@ -64,7 +64,7 @@ userList
   :: Maybe UserRefine
   -> MateHandler [UserSummary]
 userList ref = do
-  conn <- rsConnection <$> ask
+  conn <- asks rsConnection
   userSelect (fromMaybe ActiveUsers ref) conn
 
 userRecharge
@@ -74,7 +74,7 @@ userRecharge
 userRecharge (Just (auid, _)) (UserRecharge amount) =
   if amount >= 0
   then do
-    conn <- rsConnection <$> ask
+    conn <- asks rsConnection
     ud <- userDetailsSelect auid conn
     void $ insertNewJournalEntry
       (JournalSubmit
@@ -102,9 +102,9 @@ userTransfer (Just (auid, method)) (UserTransfer target amount) =
   then
     if auid /= target
     then
-      if any (== method) [PrimaryPass, ChallengeResponse]
+      if elem method [PrimaryPass, ChallengeResponse]
       then do
-        conn <- rsConnection <$> ask
+        conn <- asks rsConnection
         user <- userDetailsSelect auid conn
         if amount < userDetailsBalance user
         then do

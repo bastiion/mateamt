@@ -137,6 +137,6 @@ updateAvatar aid (AvatarData name dat) conn = liftIO $ do
         , C.constant (encodeUtf8 dat)
         )
       )
-    , uWhere      = (\(did, _, _, _) -> did .== C.constant aid)
+    , uWhere      = \(did, _, _, _) -> did .== C.constant aid
     , uReturning  = rCount
     }

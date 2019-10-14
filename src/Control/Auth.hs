@@ -5,7 +5,7 @@ import Servant
 
 import Control.Monad (void)
 
-import Control.Monad.Reader (ask)
+import Control.Monad.Reader (asks, ask)
 import Control.Monad.IO.Class (liftIO)
 
 import Control.Concurrent.STM (readTVarIO)
@@ -18,23 +18,23 @@ import Model
 authGet
   :: TicketRequest
   -> MateHandler AuthInfo
-authGet (TicketRequest uid method) = do
-  getUserAuthInfo uid method =<< (rsConnection <$> ask)
+authGet (TicketRequest uid method) =
+  getUserAuthInfo uid method =<< (asks rsConnection)
 
 authSend
   :: AuthRequest
   -> MateHandler AuthResult
 authSend req = uncurry (processAuthRequest req) =<< ((,) <$>
   (liftIO . readTVarIO =<< rsTicketStore <$> ask) <*>
-  (rsConnection <$> ask)
+  (asks rsConnection)
   )
 
 authLogout
   :: Maybe (Int, AuthMethod)
   -> MateHandler ()
-authLogout (Just (muid, method)) = do
-  processLogout muid =<< (rsConnection <$> ask)
-authLogout Nothing = do
+authLogout (Just (muid, _)) =
+  processLogout muid =<< (asks rsConnection)
+authLogout Nothing =
   throwError $ err401
     { errBody = "Unauthorized access"
     }
@@ -43,9 +43,9 @@ authManageList
   :: Maybe (Int, AuthMethod)
   -> MateHandler [AuthOverview]
 authManageList (Just (uid, method)) =
-  if any (== method) [PrimaryPass, ChallengeResponse]
+  if elem method [PrimaryPass, ChallengeResponse]
   then do
-    conn <- rsConnection <$> ask
+    conn <- asks rsConnection
     selectAuthOverviews uid conn
   else
     throwError $ err401
@@ -60,10 +60,10 @@ authManageNewAuth
   :: Maybe (Int, AuthMethod)
   -> AuthSubmit
   -> MateHandler Int
-authManageNewAuth (Just (uid, method)) (AuthSubmit asmethod ascomment aspayload) = do
-  if any (== method) [PrimaryPass, ChallengeResponse]
+authManageNewAuth (Just (uid, method)) (AuthSubmit asmethod ascomment aspayload) =
+  if elem method [PrimaryPass, ChallengeResponse]
   then do
-    conn <- rsConnection <$> ask
+    conn <- asks rsConnection
     putUserAuthInfo uid asmethod ascomment aspayload conn
   else
     throwError $ err401
@@ -78,10 +78,10 @@ authManageDeleteAuth
   :: Maybe (Int, AuthMethod)
   -> Int
   -> MateHandler ()
-authManageDeleteAuth (Just (uid, method)) adid = do
-  if any (== method) [PrimaryPass, ChallengeResponse]
+authManageDeleteAuth (Just (uid, method)) adid =
+  if elem method [PrimaryPass, ChallengeResponse]
   then do
-    conn <- rsConnection <$> ask
+    conn <- asks rsConnection
     ads <- selectAuthOverviews uid conn
     let currentad = head (filter (\ad -> authOverviewId ad == adid) ads)
     case authOverviewMethod currentad of
@@ -107,7 +107,7 @@ authManageDeleteAuth (Just (uid, method)) adid = do
       throwError $ err406
         { errBody = "You need at least one primary password or challenge response authentication"
         }
-authManageDeleteAuth Nothing _ = do
+authManageDeleteAuth Nothing _ =
   throwError $ err401
     { errBody = "Unauthorized access"
     }

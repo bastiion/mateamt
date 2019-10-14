@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE Arrows #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -29,10 +28,9 @@ import qualified Data.Set as S
 
 import Data.Time.Clock
 
-import Data.ByteString as B (ByteString, drop)
+import Data.ByteString as B (ByteString)
 import Data.ByteString.Random
 import qualified Data.ByteString.Base64 as B64
-import qualified Data.ByteString.Base16 as B16
 
 import Opaleye hiding (null)
 import qualified Opaleye.Constant as C
@@ -114,7 +112,7 @@ delayTime = 1 * 10 ^ (6 :: Int)
 
 
 generateRandomText :: IO T.Text
-generateRandomText = decodeUtf8 <$> B64.encode <$> random 23
+generateRandomText = decodeUtf8 . B64.encode <$> random 23
 
 
 selectAuthOverviews
@@ -123,7 +121,7 @@ selectAuthOverviews
   -> MateHandler [AuthOverview]
 selectAuthOverviews uid conn = do
   authData <- liftIO $ runSelect conn (proc () -> do
-    (adid, aduid, admethod, adcomment, adpayload) <-
+    (adid, aduid, admethod, adcomment, _) <-
       queryTable authDataTable -< ()
     restrict -< aduid .== C.constant uid
     returnA -< (adid, adcomment, admethod)
@@ -147,8 +145,8 @@ getUserAuthInfo
   -> MateHandler AuthInfo
 getUserAuthInfo uid method conn = do
   authdata <- map (\(aid, auid, amethod, acomment, apayload) ->
-    (aid, auid, amethod, acomment, (decodeUtf8 $ B64.encode apayload))) <$>
-    (liftIO $ do
+    (aid, auid, amethod, acomment, decodeUtf8 $ B64.encode apayload)) <$>
+    liftIO (do
       void $ threadDelay delayTime
       runSelect conn (proc () -> do
         (aid, auid, amethod, acomment, apayload) <-
@@ -207,7 +205,7 @@ deleteAuthDataById
   -> MateHandler Int64
 deleteAuthDataById adid conn = liftIO $ runDelete_ conn $ Delete
   { dTable     = authDataTable
-  , dWhere     = (\(aid, _, _, _, _) -> aid .== C.constant adid)
+  , dWhere     = \(aid, _, _, _, _) -> aid .== C.constant adid
   , dReturning = rCount
   }
 
@@ -229,7 +227,7 @@ validateToken header conn = do
         ]
   case tokens of
     [(_, uid, stamp, method)] -> do
-      now <- liftIO $ getCurrentTime
+      now <- liftIO getCurrentTime
       if diffUTCTime stamp now > 0
       then return $ Just (uid, toEnum method)
       else do
@@ -250,7 +248,7 @@ generateToken
   -> AuthResponse
   -> PGS.Connection
   -> MateHandler AuthResult
-generateToken (Ticket _ tuid _ (method, pl)) (AuthResponse response) conn = do
+generateToken (Ticket _ tuid _ (method, _)) (AuthResponse response) conn = do
   authData <- liftIO $ runSelect conn (
     keepWhen (\(_, auid, amethod, _, _) ->
       auid .== C.constant tuid .&& amethod .== C.constant (fromEnum method))
@@ -263,8 +261,11 @@ generateToken (Ticket _ tuid _ (method, pl)) (AuthResponse response) conn = do
           , ByteString
           )
         ]
-  let userPayloads = map (\(_, _, _, _, payload) ->
-        (decodeUtf8 payload)) authData
+  let userPayloads = map
+        (\(_, _, _, _, payload) ->
+          decodeUtf8 payload
+          )
+        authData
       authResult = case method of
         PrimaryPass       -> validatePass response userPayloads
         SecondaryPass     -> validatePass response userPayloads
@@ -282,9 +283,9 @@ generateToken (Ticket _ tuid _ (method, pl)) (AuthResponse response) conn = do
   else
     return Denied
   where
-    validatePass provided presents =
-      any (\present -> provided == present) presents
-    validateChallengeResponse provided presents =
+    validatePass provided =
+      any (provided ==)
+    validateChallengeResponse _ _ =
       error "Validation of challenge response authentication not yet implemented"
 
 
@@ -315,7 +316,7 @@ deleteToken
 deleteToken tstr conn =
   liftIO $ runDelete_ conn $ Delete
     { dTable     = tokenTable
-    , dWhere     = (\(rtstr, _, _, _) -> rtstr .== C.constant tstr)
+    , dWhere     = \(rtstr, _, _, _) -> rtstr .== C.constant tstr
     , dReturning = rCount
     }
 
@@ -326,7 +327,7 @@ deleteTokenByUserId
   -> MateHandler Int64
 deleteTokenByUserId uid conn = liftIO $ runDelete_ conn $ Delete
   { dTable     = tokenTable
-  , dWhere     = (\(_, rid, _, _) -> rid .== C.constant uid)
+  , dWhere     = \(_, rid, _, _) -> rid .== C.constant uid
   , dReturning = rCount
   }
 
@@ -334,18 +335,18 @@ deleteTokenByUserId uid conn = liftIO $ runDelete_ conn $ Delete
 newTicket :: Int -> AuthMethod -> MateHandler (Maybe T.Text, AuthTicket)
 newTicket ident method = do
   store <- rsTicketStore <$> ask
-  rand1 <- liftIO $ generateRandomText
+  rand1 <- liftIO generateRandomText
   rand2 <- liftIO $ case method of
     ChallengeResponse -> Just <$> generateRandomText
     _                 -> return Nothing
-  later <- liftIO $ (addUTCTime 23 <$> getCurrentTime)
+  later <- liftIO (addUTCTime 23 <$> getCurrentTime)
   let ticket = Ticket
         { ticketId     = AuthTicket rand1
         , ticketUser   = ident
         , ticketExpiry = later
         , ticketMethod = (method, rand2)
         }
-  liftIO $ atomically $ modifyTVar store (\s -> S.insert ticket s)
+  liftIO $ atomically $ modifyTVar store (S.insert ticket)
   return (rand2, AuthTicket rand1)
 
 
@@ -359,7 +360,7 @@ processAuthRequest (AuthRequest aticket hash) store conn = do
   case S.toList mticket of
     [ticket] -> do
       -- liftIO $ putStrLn "there is a ticket..."
-      now <- liftIO $ getCurrentTime
+      now <- liftIO getCurrentTime
       liftIO $ threadDelay delayTime
       if now > ticketExpiry ticket
       then
@@ -374,7 +375,7 @@ processAuthRequest (AuthRequest aticket hash) store conn = do
 #else
         return Denied
 #endif
-      else do
+      else
         -- liftIO $ putStrLn "...and it is valid"
         generateToken ticket hash conn
     _        -> do
@@ -395,5 +396,5 @@ processLogout
   :: Int
   -> PGS.Connection
   -> MateHandler ()
-processLogout uid conn = do
+processLogout uid conn =
   void $ deleteTokenByUserId uid conn

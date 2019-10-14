@@ -70,7 +70,7 @@ userSelect
   -> PGS.Connection
   -> MateHandler [UserSummary]
 userSelect ref conn = do
-  today <- utctDay <$> (liftIO $ getCurrentTime)
+  today <- utctDay <$> (liftIO getCurrentTime)
   users <- liftIO $ runSelect conn (case ref of
       AllUsers -> selectTable userTable
       ActiveUsers -> keepWhen (\(_, _, _, ts, _, _) ->
@@ -138,9 +138,7 @@ userBalanceSelect conn uid = do
             )
           ]
   head <$> mapM
-    (\(_, _, i3, _, _, _) -> return $
-      i3
-      )
+    (\(_, _, i3, _, _, _) -> return i3)
     users
 
 
@@ -183,7 +181,7 @@ updateUserDetails uid uds now conn = liftIO $ runUpdate_ conn $ Update
       , C.constant (userDetailsSubmitAvatar uds)
       )
     )
-  , uWhere      = (\(i1, _, _, _, _, _) -> i1 .== C.constant uid)
+  , uWhere      = \(i1, _, _, _, _, _) -> i1 .== C.constant uid
   , uReturning  = rCount
   }
 
@@ -203,6 +201,6 @@ addToUserBalance uid amount conn = liftIO $ runUpdate_ conn $ Update
       , i6
       )
     )
-  , uWhere      = (\(i1, _, _, _, _, _) -> i1 .== C.constant uid)
+  , uWhere      = \(i1, _, _, _, _, _) -> i1 .== C.constant uid
   , uReturning  = rCount
   }

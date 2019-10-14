@@ -105,7 +105,7 @@ productOverviewSelect refine conn = do
   prods <- liftIO $ runSelect conn
     ( proc () -> do
         (pid, i2, i6, i7, i8, i9, i11, i12, i13) <- queryTable productTable -< ()
-        (a1, a2, a3, a4, a5) <-
+        (a1, _, a3, _, _) <-
           limit 1 (
             orderBy (desc (\(_, ts, _, _, _) -> ts)) (queryTable amountTable))
               -< ()
@@ -144,22 +144,22 @@ productOverviewSelect refine conn = do
                 )
               ]
       (ii3, ii4) <- return $ (\(_, _, y, x, _) -> (x, y)) $ head amounts
-      ii5 <- return $ (\(_, x) -> x) $
-        foldl
-          (\(bef, van) (_, _, amo, _, ver) ->
+      let ii5 = snd $
+            foldl
+              (\(bef, van) (_, _, amo, _, ver) ->
+                if ver
+                then (amo, if amo < bef then van + (bef - amo) else van)
+                else (amo, van)
+                )
+              (0, 0)
+              (Prelude.reverse amounts)
+          ii10 = snd $ foldl (\(bef, tot) (_, _, amo, _, ver) ->
             if ver
-            then (amo, if amo < bef then van + (bef - amo) else van)
-            else (amo, van)
+            then (amo, tot)
+            else (amo, tot + max 0 (bef - amo))
             )
-          (0, 0)
-          (Prelude.reverse amounts)
-      ii10 <- return $ snd $ foldl (\(bef, tot) (_, _, amo, _, ver) ->
-        if ver
-        then (amo, tot)
-        else (amo, tot + max 0 (bef - amo))
-        )
-        (0, 0)
-        (Prelude.reverse amounts)
+            (0, 0)
+            (Prelude.reverse amounts)
       return $ ProductOverview
         i1 i2 ii3 ii4 ii5 i3 i4 i5 i6 ii10 i7 i8 i9
       )
@@ -205,22 +205,22 @@ productOverviewSelectSingle pid conn = do
                 )
               ]
       (ii3, ii4) <- return $ (\(_, _, y, x, _) -> (x, y)) $ head amounts
-      ii5 <- return $ (\(_, x) -> x) $
-        foldl
-          (\(bef, van) (_, _, amo, _, ver) ->
+      let ii5 = snd $
+            foldl
+              (\(bef, van) (_, _, amo, _, ver) ->
+                if ver
+                then (amo, if amo < bef then van + (bef - amo) else van)
+                else (amo, van)
+                )
+              (0, 0)
+              (Prelude.reverse amounts)
+          ii10 = snd $ foldl (\(bef, tot) (_, _, amo, _, ver) ->
             if ver
-            then (amo, if amo < bef then van + (bef - amo) else van)
-            else (amo, van)
+            then (amo, tot)
+            else (amo, tot + max 0 (bef - amo))
             )
-          (0, 0)
-          (Prelude.reverse amounts)
-      ii10 <- return $ snd $ foldl (\(bef, tot) (_, _, amo, _, ver) ->
-        if ver
-        then (amo, tot)
-        else (amo, tot + max 0 (bef - amo))
-        )
-        (0, 0)
-        (Prelude.reverse amounts)
+            (0, 0)
+            (Prelude.reverse amounts)
       return $ ProductOverview
         i1 i2 ii3 ii4 ii5 i3 i4 i5 i6 ii10 i7 i8 i9
       )
@@ -235,7 +235,7 @@ productShortOverviewSelect refine conn = do
   prods <- liftIO $ runSelect conn
     ( proc () -> do
         (i1, i2, i6, i7, i8, i9, i11, i12, i13) <- queryTable productTable -< ()
-        (a1, a2, a3, a4, a5) <-
+        (a1, _, a3, _, _) <-
           limit 1 (
             orderBy (desc (\(_, ts, _, _, _) -> ts)) (queryTable amountTable))
               -< ()

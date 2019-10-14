@@ -1,10 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -68,34 +65,65 @@ type MateAPI =
   :<|> "avatar" :> "list" :> Get '[JSON] [Avatar]
 
 
-( authGetLink :<|>
-  authSendLink :<|>
-  authLogoutLink :<|>
+authGetLink :: Link
+authSendLink :: Link
+authLogoutLink :: Link
 
-  authManageListLink :<|>
-  authManageNewAuthLink :<|>
-  authManageDeleteAuthLink :<|>
+authManageListLink :: Link
+authManageNewAuthLink :: Link
+authManageDeleteAuthLink :: Link
 
-  userNewLink :<|>
-  userGetLink :<|>
-  userUpdateLink :<|>
-  userListLink :<|>
-  userRechargeLink :<|>
-  userTransferLink :<|>
+userNewLink :: Link
+userGetLink :: Link
+userUpdateLink :: Link
+userListLink :: Maybe UserRefine -> Link
+userRechargeLink :: Link
+userTransferLink :: Link
 
-  productNewLink :<|>
-  productOverviewLink :<|>
-  productStockRefillLink :<|>
-  productStockUpdateLink :<|>
-  productListLink :<|>
-  productShortListLink :<|>
+productNewLink :: Link
+productOverviewLink :: Int -> Link
+productStockRefillLink :: Link
+productStockUpdateLink :: Link
+productListLink :: Maybe ProductRefine -> Link
+productShortListLink :: Maybe ProductRefine -> Link
 
-  buyLink :<|>
+buyLink :: Link
 
-  journalShowLink :<|>
+journalShowLink :: Maybe Int -> Maybe Int -> Link
 
-  avatarGetLink :<|>
-  avaterInsertLink :<|>
-  avatarUpdateLink :<|>
-  avatarListLink
+avatarGetLink :: Int -> Link
+avaterInsertLink :: Link
+avatarUpdateLink :: Int -> Link
+avatarListLink :: Link
+
+( (authGetLink :: Link) :<|>
+  (authSendLink :: Link) :<|>
+  (authLogoutLink :: Link) :<|>
+
+  (authManageListLink :: Link) :<|>
+  (authManageNewAuthLink :: Link) :<|>
+  (authManageDeleteAuthLink :: Link) :<|>
+
+  (userNewLink :: Link) :<|>
+  (userGetLink :: Link) :<|>
+  (userUpdateLink :: Link) :<|>
+  (userListLink :: Maybe UserRefine -> Link) :<|>
+  (userRechargeLink :: Link) :<|>
+  (userTransferLink :: Link) :<|>
+
+  (productNewLink :: Link) :<|>
+  (productOverviewLink :: Int -> Link) :<|>
+  (productStockRefillLink :: Link) :<|>
+  (productStockUpdateLink :: Link) :<|>
+  (productListLink :: Maybe ProductRefine -> Link) :<|>
+  (productShortListLink :: Maybe ProductRefine -> Link) :<|>
+
+  (buyLink :: Link) :<|>
+
+  (journalShowLink :: Maybe Int -> Maybe Int -> Link) :<|>
+
+  (avatarGetLink :: Int -> Link) :<|>
+  (avaterInsertLink :: Link) :<|>
+  (avatarUpdateLink :: Int -> Link) :<|>
+  (avatarListLink :: Link)
   ) = allLinks (Proxy :: Proxy MateAPI)

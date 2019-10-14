@@ -107,9 +107,8 @@ authHandler conn = mkAuthHandler handler
     handler :: Request -> Handler (Maybe (Int, AuthMethod))
     handler req = do
       let headers = requestHeaders req
-      res <- case lookup "Authentication" headers of
-        Just hh -> do
+      case lookup "Authentication" headers of
+        Just hh ->
           validateToken hh conn
         _       ->
           return Nothing
-      return res

@@ -3,7 +3,7 @@ module Control.Avatar where
 
 import Control.Monad (void)
 
-import Control.Monad.Reader (ask)
+import Control.Monad.Reader (asks)
 
 import Control.Monad.Trans (liftIO)
 
@@ -26,7 +26,7 @@ avatarGet
   :: Int
   -> MateHandler Application
 avatarGet aid = do
-  conn <- rsConnection <$> ask
+  conn <- asks rsConnection
   as <- liftIO $ avatarSelectById aid conn
   if null as
   then
@@ -47,7 +47,7 @@ avatarInsert
   -> AvatarData
   -> MateHandler Int
 avatarInsert (Just _) ad = do
-  conn <- rsConnection <$> ask
+  conn <- asks rsConnection
   insertAvatar ad conn
 avatarInsert Nothing _ =
   throwError $ err401
@@ -60,9 +60,9 @@ avatarUpdate
   -> AvatarData
   -> MateHandler ()
 avatarUpdate (Just _) aid ad = do
-  conn <- rsConnection <$> ask
+  conn <- asks rsConnection
   void $ updateAvatar aid ad conn
-avatarUpdate Nothing _ _ = do
+avatarUpdate Nothing _ _ =
   throwError $ err401
     { errBody = "No Authentication present."
     }
@@ -70,5 +70,5 @@ avatarUpdate Nothing _ _ = do
 avatarList
   :: MateHandler [Avatar]
 avatarList = do
-  conn <- rsConnection <$> ask
+  conn <- asks rsConnection
   liftIO $ avatarSelect conn

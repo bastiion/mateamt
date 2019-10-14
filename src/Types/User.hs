@@ -1,5 +1,4 @@
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE OverloadedStrings #-}
 module Types.User where
 
 import GHC.Generics
@@ -85,7 +84,7 @@ instance ToJSON UserDetailsSubmit where
 instance FromJSON UserDetailsSubmit
 
 
-data UserRecharge = UserRecharge
+newtype UserRecharge = UserRecharge
   { userRechargeAmount :: Int
   }
   deriving (Generic, Show)

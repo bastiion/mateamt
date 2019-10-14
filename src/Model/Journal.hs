@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE Arrows #-}
 module Model.Journal where
 
@@ -130,7 +131,7 @@ insertNewJournalEntry
   -> PGS.Connection
   -> MateHandler Int
 insertNewJournalEntry (JournalSubmit descr amount) conn = do
-  lastTotal <- (\x -> case x of
+  lastTotal <- (\case
     Just j  -> journalEntryTotalAmount j 
     Nothing -> 0
     ) <$> selectLatestJournalEntry conn

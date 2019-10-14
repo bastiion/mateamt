@@ -38,7 +38,7 @@ instance ToJSON JournalSubmit where
 instance FromJSON JournalSubmit
 
 
-data JournalCashCheck = JournalCashCheck
+newtype JournalCashCheck = JournalCashCheck
   { journalCashCheckTotalAmount :: Int
   }
   deriving (Generic, Show)
