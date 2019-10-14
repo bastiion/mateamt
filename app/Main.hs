@@ -8,8 +8,6 @@ module Main where
 import Servant
 import Servant.Server.Experimental.Auth
 
-import Data.ByteString.Base16 (decode)
-
 import Data.Set (empty)
 
 import Database.PostgreSQL.Simple
@@ -110,8 +108,8 @@ authHandler conn = mkAuthHandler handler
     handler req = do
       let headers = requestHeaders req
       res <- case lookup "Authentication" headers of
-        Just hh ->
-          validateToken (fst $ decode hh) conn
+        Just hh -> do
+          validateToken hh conn
         _       ->
           return Nothing
       return res

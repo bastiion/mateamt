@@ -250,7 +250,7 @@ generateToken
   -> AuthResponse
   -> PGS.Connection
   -> MateHandler AuthResult
-generateToken (Ticket _ tuid _ (method, pl)) (AuthResponse rawresponse) conn = do
+generateToken (Ticket _ tuid _ (method, pl)) (AuthResponse response) conn = do
   authData <- liftIO $ runSelect conn (
     keepWhen (\(_, auid, amethod, _, _) ->
       auid .== C.constant tuid .&& amethod .== C.constant (fromEnum method))
@@ -264,13 +264,12 @@ generateToken (Ticket _ tuid _ (method, pl)) (AuthResponse rawresponse) conn = d
           )
         ]
   let userPayloads = map (\(_, _, _, _, payload) ->
-        (decodeUtf8 $ fst $ B16.decode $ B.drop 2 payload)) authData
-      response = rawresponse
+        (decodeUtf8 payload)) authData
       authResult = case method of
         PrimaryPass       -> validatePass response userPayloads
         SecondaryPass     -> validatePass response userPayloads
         ChallengeResponse -> validateChallengeResponse response userPayloads
-  liftIO $ print (response : userPayloads)
+  -- liftIO $ print (response : userPayloads)
   if authResult
   then do
     token <- liftIO $ Token
@@ -359,7 +358,7 @@ processAuthRequest (AuthRequest aticket hash) store conn = do
   let mticket = S.filter (\st -> ticketId st == aticket) store
   case S.toList mticket of
     [ticket] -> do
-      liftIO $ putStrLn "there is a ticket..."
+      -- liftIO $ putStrLn "there is a ticket..."
       now <- liftIO $ getCurrentTime
       liftIO $ threadDelay delayTime
       if now > ticketExpiry ticket
@@ -376,7 +375,7 @@ processAuthRequest (AuthRequest aticket hash) store conn = do
         return Denied
 #endif
       else do
-        liftIO $ putStrLn "...and it is valid"
+        -- liftIO $ putStrLn "...and it is valid"
         generateToken ticket hash conn
     _        -> do
       liftIO $ threadDelay delayTime
