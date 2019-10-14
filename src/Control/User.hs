@@ -50,7 +50,7 @@ userUpdate Nothing _ =
     { errBody = "No Authentication present."
     }
 userUpdate (Just (aid, method)) uds =
-  if elem method [PrimaryPass, ChallengeResponse]
+  if method `elem` [PrimaryPass, ChallengeResponse]
   then do
     now <- liftIO getCurrentTime
     conn <- asks rsConnection
@@ -102,7 +102,7 @@ userTransfer (Just (auid, method)) (UserTransfer target amount) =
   then
     if auid /= target
     then
-      if elem method [PrimaryPass, ChallengeResponse]
+      if method `elem` [PrimaryPass, ChallengeResponse]
       then do
         conn <- asks rsConnection
         user <- userDetailsSelect auid conn

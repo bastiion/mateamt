@@ -5,7 +5,7 @@ import Servant
 
 import Control.Monad (void)
 
-import Control.Monad.Reader (asks, ask)
+import Control.Monad.Reader (asks)
 import Control.Monad.IO.Class (liftIO)
 
 import Control.Concurrent.STM (readTVarIO)
@@ -19,21 +19,21 @@ authGet
   :: TicketRequest
   -> MateHandler AuthInfo
 authGet (TicketRequest uid method) =
-  getUserAuthInfo uid method =<< (asks rsConnection)
+  getUserAuthInfo uid method =<< asks rsConnection
 
 authSend
   :: AuthRequest
   -> MateHandler AuthResult
 authSend req = uncurry (processAuthRequest req) =<< ((,) <$>
-  (liftIO . readTVarIO =<< rsTicketStore <$> ask) <*>
-  (asks rsConnection)
+  (liftIO . readTVarIO =<< asks rsTicketStore) <*>
+  asks rsConnection
   )
 
 authLogout
   :: Maybe (Int, AuthMethod)
   -> MateHandler ()
 authLogout (Just (muid, _)) =
-  processLogout muid =<< (asks rsConnection)
+  processLogout muid =<< asks rsConnection
 authLogout Nothing =
   throwError $ err401
     { errBody = "Unauthorized access"
@@ -43,7 +43,7 @@ authManageList
   :: Maybe (Int, AuthMethod)
   -> MateHandler [AuthOverview]
 authManageList (Just (uid, method)) =
-  if elem method [PrimaryPass, ChallengeResponse]
+  if method `elem` [PrimaryPass, ChallengeResponse]
   then do
     conn <- asks rsConnection
     selectAuthOverviews uid conn
@@ -61,7 +61,7 @@ authManageNewAuth
   -> AuthSubmit
   -> MateHandler Int
 authManageNewAuth (Just (uid, method)) (AuthSubmit asmethod ascomment aspayload) =
-  if elem method [PrimaryPass, ChallengeResponse]
+  if method `elem` [PrimaryPass, ChallengeResponse]
   then do
     conn <- asks rsConnection
     putUserAuthInfo uid asmethod ascomment aspayload conn
@@ -79,7 +79,7 @@ authManageDeleteAuth
   -> Int
   -> MateHandler ()
 authManageDeleteAuth (Just (uid, method)) adid =
-  if elem method [PrimaryPass, ChallengeResponse]
+  if method `elem` [PrimaryPass, ChallengeResponse]
   then do
     conn <- asks rsConnection
     ads <- selectAuthOverviews uid conn

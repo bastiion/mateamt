@@ -128,43 +128,44 @@ productOverviewSelect refine conn = do
           )
         ]
   mapM
-    (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) -> do
-      amounts <- liftIO $ runSelect conn
-        ( proc () -> do
-          stuff@(a1, _, _, _, _) <- orderBy (desc (\(_, ts, _, _, _) -> ts))
-            (queryTable amountTable) -< ()
-          restrict -< C.constant i1 .== a1
-          returnA -< stuff
-          ) :: MateHandler
-              [ ( Int
-                , UTCTime
-                , Int
-                , Int
-                , Bool
-                )
-              ]
-      (ii3, ii4) <- return $ (\(_, _, y, x, _) -> (x, y)) $ head amounts
-      let ii5 = snd $
-            foldl
-              (\(bef, van) (_, _, amo, _, ver) ->
-                if ver
-                then (amo, if amo < bef then van + (bef - amo) else van)
-                else (amo, van)
-                )
-              (0, 0)
-              (Prelude.reverse amounts)
-          ii10 = snd $ foldl (\(bef, tot) (_, _, amo, _, ver) ->
-            if ver
-            then (amo, tot)
-            else (amo, tot + max 0 (bef - amo))
-            )
-            (0, 0)
-            (Prelude.reverse amounts)
-      return $ ProductOverview
-        i1 i2 ii3 ii4 ii5 i3 i4 i5 i6 ii10 i7 i8 i9
-      )
+    (generateProductOverview conn)
     prods
 
+queryAmounts
+  :: PGS.Connection
+  -> Int
+  -> IO [(Int, UTCTime, Int, Int, Bool)]
+queryAmounts conn pid = runSelect conn $ proc () -> do
+  stuff@(a1, _, _, _, _) <- orderBy (desc (\(_, ts, _, _, _) -> ts))
+    (queryTable amountTable) -< ()
+  restrict -< C.constant pid .== a1
+  returnA -< stuff
+
+generateProductOverview
+  :: PGS.Connection
+  -> (Int, Text, Int, Maybe Int, Maybe Int, Int, Int, Maybe Int, Maybe Text)
+  -> MateHandler ProductOverview
+generateProductOverview conn (i1, i2, i3, i4, i5, i6, i7, i8, i9) = do
+  amounts <- liftIO $ queryAmounts conn i1
+  (ii3, ii4) <- return $ (\(_, _, y, x, _) -> (x, y)) $ head amounts
+  let ii5 = snd $
+        foldl
+          (\(bef, van) (_, _, amo, _, ver) ->
+            if ver
+            then (amo, if amo < bef then van + (bef - amo) else van)
+            else (amo, van)
+            )
+          (0, 0)
+          (Prelude.reverse amounts)
+      ii10 = snd $ foldl (\(bef, tot) (_, _, amo, _, ver) ->
+        if ver
+        then (amo, tot)
+        else (amo, tot + max 0 (bef - amo))
+        )
+        (0, 0)
+        (Prelude.reverse amounts)
+  return $ ProductOverview
+    i1 i2 ii3 ii4 ii5 i3 i4 i5 i6 ii10 i7 i8 i9
 
 productOverviewSelectSingle
   :: Int
@@ -189,41 +190,7 @@ productOverviewSelectSingle pid conn = do
           )
         ]
   head <$> mapM
-    (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) -> do
-      amounts <- liftIO $ runSelect conn
-        ( proc () -> do
-          stuff@(a1, _, _, _, _) <- orderBy (desc (\(_, ts, _, _, _) -> ts))
-            (queryTable amountTable) -< ()
-          restrict -< C.constant i1 .== a1
-          returnA -< stuff
-          ) :: MateHandler
-              [ ( Int
-                , UTCTime
-                , Int
-                , Int
-                , Bool
-                )
-              ]
-      (ii3, ii4) <- return $ (\(_, _, y, x, _) -> (x, y)) $ head amounts
-      let ii5 = snd $
-            foldl
-              (\(bef, van) (_, _, amo, _, ver) ->
-                if ver
-                then (amo, if amo < bef then van + (bef - amo) else van)
-                else (amo, van)
-                )
-              (0, 0)
-              (Prelude.reverse amounts)
-          ii10 = snd $ foldl (\(bef, tot) (_, _, amo, _, ver) ->
-            if ver
-            then (amo, tot)
-            else (amo, tot + max 0 (bef - amo))
-            )
-            (0, 0)
-            (Prelude.reverse amounts)
-      return $ ProductOverview
-        i1 i2 ii3 ii4 ii5 i3 i4 i5 i6 ii10 i7 i8 i9
-      )
+    (generateProductOverview conn)
     prods
 
 
@@ -259,20 +226,7 @@ productShortOverviewSelect refine conn = do
         ]
   mapM
     (\(i1, i2, i3, i4, _, _, _, _, _) -> do
-      amounts <- liftIO $ runSelect conn
-        ( proc () -> do
-          stuff@(a1, _, _, _, _) <- orderBy (desc (\(_, ts, _, _, _) -> ts))
-            (queryTable amountTable) -< ()
-          restrict -< C.constant i1 .== a1
-          returnA -< stuff
-          ) :: MateHandler
-              [ ( Int
-                , UTCTime
-                , Int
-                , Int
-                , Bool
-                )
-              ]
+      amounts <- liftIO $ queryAmounts conn i1
       (ii3, ii4) <- return $ (\(_, _, y, x, _) -> (x, y)) $ head amounts
       return $ ProductShortOverview
         i1 i2 ii3 ii4 i3 i4

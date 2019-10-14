@@ -10,7 +10,7 @@ import Control.Arrow
 
 import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Reader (ask)
+import Control.Monad.Reader (asks)
 
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.STM
@@ -283,8 +283,8 @@ generateToken (Ticket _ tuid _ (method, _)) (AuthResponse response) conn = do
   else
     return Denied
   where
-    validatePass provided =
-      any (provided ==)
+    validatePass =
+      elem
     validateChallengeResponse _ _ =
       error "Validation of challenge response authentication not yet implemented"
 
@@ -334,7 +334,7 @@ deleteTokenByUserId uid conn = liftIO $ runDelete_ conn $ Delete
 
 newTicket :: Int -> AuthMethod -> MateHandler (Maybe T.Text, AuthTicket)
 newTicket ident method = do
-  store <- rsTicketStore <$> ask
+  store <- asks rsTicketStore
   rand1 <- liftIO generateRandomText
   rand2 <- liftIO $ case method of
     ChallengeResponse -> Just <$> generateRandomText

@@ -7,8 +7,6 @@ import Data.Time.Clock
 
 import Data.Profunctor.Product (p6)
 
-import Data.ByteString hiding (head, foldl)
-
 import Data.Int (Int64)
 
 import qualified Database.PostgreSQL.Simple as PGS
@@ -24,7 +22,6 @@ import qualified Opaleye.Constant as C
 
 import Types.User
 import Types.Refine
-import Types.Auth
 import Types.Reader
 
 initUser :: PGS.Query
@@ -70,7 +67,7 @@ userSelect
   -> PGS.Connection
   -> MateHandler [UserSummary]
 userSelect ref conn = do
-  today <- utctDay <$> (liftIO getCurrentTime)
+  today <- utctDay <$> liftIO getCurrentTime
   users <- liftIO $ runSelect conn (case ref of
       AllUsers -> selectTable userTable
       ActiveUsers -> keepWhen (\(_, _, _, ts, _, _) ->
@@ -89,7 +86,7 @@ userSelect ref conn = do
             )
           ]
   mapM
-    (\(i1, i2, i3, i4, i5, i6) -> return $
+    (\(i1, i2, _, _, _, i6) -> return $
       UserSummary i1 i2 i6
       )
     users
