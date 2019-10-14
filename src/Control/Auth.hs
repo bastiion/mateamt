@@ -87,14 +87,10 @@ authManageDeleteAuth (Just (uid, method)) adid = do
     case authOverviewMethod currentad of
       PrimaryPass -> if validateDeletion ads
         then void (deleteAuthDataById adid conn)
-        else throwError $ err406
-          { errBody = "You need at least one primary password or challenge response authentication"
-          }
+        else throwUnacceptableDeletionError
       ChallengeResponse -> if validateDeletion ads
         then void (deleteAuthDataById adid conn)
-        else throwError $ err406
-          { errBody = "You need at least one primary password or challenge response authentication"
-          }
+        else throwUnacceptableDeletionError
       _ -> void $ deleteAuthDataById adid conn
   else
     throwError $ err401
@@ -107,6 +103,10 @@ authManageDeleteAuth (Just (uid, method)) adid = do
           authOverviewMethod ad == ChallengeResponse)
         ads
         )
+    throwUnacceptableDeletionError =
+      throwError $ err406
+        { errBody = "You need at least one primary password or challenge response authentication"
+        }
 authManageDeleteAuth Nothing _ = do
   throwError $ err401
     { errBody = "Unauthorized access"
