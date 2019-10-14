@@ -32,21 +32,14 @@ userNew (UserSubmit ident email passhash) = do
 
 userGet
   :: Maybe (Int, AuthMethod)
-  -> Int
   -> MateHandler UserDetails
-userGet Nothing _ =
+userGet Nothing =
   throwError $ err401
     { errBody = "No Authentication present."
     }
-userGet (Just (aid, method)) uid =
-  if aid == uid && any (== method) [PrimaryPass, ChallengeResponse]
-  then do
-    conn <- rsConnection <$> ask
-    userDetailsSelect uid conn
-  else
-    throwError $ err401
-      { errBody = "Wrong Authentication present."
-      }
+userGet (Just (uid, _)) = do
+  conn <- rsConnection <$> ask
+  userDetailsSelect uid conn
 
 userUpdate
   :: Maybe (Int, AuthMethod)

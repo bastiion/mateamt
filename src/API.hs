@@ -33,8 +33,7 @@ type MateAPI =
     :> ReqBody '[JSON] Int :> Delete '[JSON] ()
 
   :<|> "user" :> ReqBody '[JSON] UserSubmit :> Post '[JSON] Int
-  :<|> "user" :> AuthProtect "header-auth"
-    :> Capture "uid'" Int :> Get '[JSON] UserDetails
+  :<|> "user" :> AuthProtect "header-auth" :> Get '[JSON] UserDetails
   :<|> "user" :> AuthProtect "header-auth"
     :> ReqBody '[JSON] UserDetailsSubmit :> Patch '[JSON] ()
   :<|> "user" :> "list" :> QueryParam "refine" UserRefine :> Get '[JSON] [UserSummary]
