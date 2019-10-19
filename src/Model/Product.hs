@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE Arrows #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Model.Product where
 
 import Data.Text as T hiding (head, foldl)
@@ -9,7 +10,7 @@ import Data.Profunctor.Product (p9)
 
 import Control.Monad.IO.Class (liftIO)
 
-import Control.Arrow ((<<<), returnA)
+import Control.Arrow ((<<<), returnA, arr)
 
 import qualified Database.PostgreSQL.Simple as PGS
 
@@ -104,12 +105,32 @@ productOverviewSelect
 productOverviewSelect refine conn = do
   prods <- liftIO $ runSelect conn
     ( proc () -> do
-        (pid, i2, i6, i7, i8, i9, i11, i12, i13) <- queryTable productTable -< ()
-        (a1, _, a3, _, _) <-
-          limit 1 (
-            orderBy (desc (\(_, ts, _, _, _) -> ts)) (queryTable amountTable))
-              -< ()
-        restrict -< a1 .== pid
+        -- (a1, _, a3, _, _)
+        --     <- arr
+        --       (\(arrdata, pid) -> (limit 1 (
+        --         orderBy (desc (\(_, ts, _, _, _) -> ts)) (
+        --           keepWhen (\(aid, _, _, _, _) -> pid .== aid) <<< arrdata)))) <<<
+        --             (arr (\pid -> (selectTable amountTable, pid))) -< pid
+        (pid, i2, i6, i7, i8, i9, i11, i12, i13, a3) ::
+          ( Column PGInt4
+          , Column PGText
+          , Column PGInt4
+          , Column (Nullable PGInt4)
+          , Column (Nullable PGInt4)
+          , Column (PGInt4)
+          , Column (PGInt4)
+          , Column (Nullable SqlInt4)
+          , Column (Nullable SqlText)
+          , Column PGInt4
+          ) <-
+          arr (\((p, i2, i6, i7, i8, i9, i11, i12, i13), (_, _, a3, _, _)) ->
+            (p, i2, i6, i7, i8, i9, i11, i12, i13, a3))
+            <<< leftJoin
+              (selectTable productTable)
+              (selectTable amountTable)
+              (\((pid, _, _, _, _, _, _, _, _), (aid, _, _, _, _)) ->
+                pid .== aid
+                ) -< ()
         restrict -< case refine of
           AllProducts -> C.constant True
           AvailableProducts -> a3 ./= C.constant (0 :: Int)
