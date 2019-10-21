@@ -10,11 +10,15 @@ import Data.Profunctor.Product (p9)
 
 import Control.Monad.IO.Class (liftIO)
 
-import Control.Arrow ((<<<), returnA, arr)
+import Control.Arrow
 
 import qualified Database.PostgreSQL.Simple as PGS
 
-import Opaleye as O hiding (max)
+import qualified Data.Profunctor as P
+import qualified Data.Profunctor.Product as PP
+import qualified Data.Profunctor.Product.Default as D
+
+import Opaleye as O
 import Opaleye.Constant as C
 
 -- internal imports
@@ -103,54 +107,75 @@ productOverviewSelect
   -> PGS.Connection
   -> MateHandler [ProductOverview]
 productOverviewSelect refine conn = do
-  prods <- liftIO $ runSelect conn
-    ( proc () -> do
-        -- (a1, _, a3, _, _)
-        --     <- arr
-        --       (\(arrdata, pid) -> (limit 1 (
-        --         orderBy (desc (\(_, ts, _, _, _) -> ts)) (
-        --           keepWhen (\(aid, _, _, _, _) -> pid .== aid) <<< arrdata)))) <<<
-        --             (arr (\pid -> (selectTable amountTable, pid))) -< pid
-        (pid, i2, i6, i7, i8, i9, i11, i12, i13, a3) ::
-          ( Column PGInt4
-          , Column PGText
-          , Column PGInt4
-          , Column (Nullable PGInt4)
-          , Column (Nullable PGInt4)
-          , Column (PGInt4)
-          , Column (PGInt4)
-          , Column (Nullable SqlInt4)
-          , Column (Nullable SqlText)
-          , Column PGInt4
-          ) <-
-          arr (\((p, i2, i6, i7, i8, i9, i11, i12, i13), (_, _, a3, _, _)) ->
-            (p, i2, i6, i7, i8, i9, i11, i12, i13, a3))
-            <<< leftJoin
-              (selectTable productTable)
-              (selectTable amountTable)
-              (\((pid, _, _, _, _, _, _, _, _), (aid, _, _, _, _)) ->
-                pid .== aid
-                ) -< ()
-        restrict -< case refine of
-          AllProducts -> C.constant True
-          AvailableProducts -> a3 ./= C.constant (0 :: Int)
-          DepletedProducts -> a3 .== C.constant (0 :: Int)
-        returnA -< (pid, i2, i6, i7, i8, i9, i11, i12, i13)
-    ) :: MateHandler
-        [ ( Int
-          , T.Text
-          , Int
-          , Maybe Int
-          , Maybe Int
-          , Int
-          , Int
-          , Maybe Int
-          , Maybe T.Text
-          )
-        ]
+  prods <- liftIO $ runSelect conn (produceProductOverviews refine)
   mapM
     (generateProductOverview conn)
     prods
+
+produceProductOverviews
+  :: ProductRefine
+  -> Select
+      ( Column PGInt4
+      , Column PGText
+      , Column PGInt4
+      , Column (Nullable PGInt4)
+      , Column (Nullable PGInt4)
+      , Column PGInt4
+      , Column PGInt4
+      , Column (Nullable PGInt4)
+      , Column (Nullable PGText)
+      , Column PGInt4
+      , Column PGInt4
+      )
+produceProductOverviews refine =
+  ( proc () -> do
+      (p, i2, i6, i7, i8, i9, i11, i12, i13, a3, a4)
+        <- leftJoinF
+             (\(pid, pi2, pi6, pi7, pi8, pi9, pi11, pi12, pi13)
+               (aid, ai2, ai3, ai4, ai5) ->
+                 (pid, pi2, pi6, pi7, pi8, pi9, pi11, pi12, pi13, ai3, ai4)
+               )
+             (\_ ->
+               ( (C.constant (0 :: Int) :: Column PGInt4)
+               , (C.constant ("ERROR PRODUCT" :: T.Text) :: Column PGText)
+               , (C.constant (0 :: Int) :: Column PGInt4)
+               , (C.constant (Just (0 :: Int)) :: Column (Nullable PGInt4))
+               , (C.constant (Just (0 :: Int)) :: Column (Nullable PGInt4))
+               , (C.constant (0 :: Int) :: Column PGInt4)
+               , (C.constant (0 :: Int) :: Column PGInt4)
+               , (C.constant (Just (0 :: Int)) :: Column (Nullable PGInt4))
+               , (C.constant (Just ("" :: T.Text)) :: Column (Nullable PGText))
+               , (C.constant (0 :: Int) :: Column PGInt4)
+               , (C.constant (0 :: Int) :: Column PGInt4)
+               )
+               )
+             (\(pid, pi2, pi6, pi7, pi8, pi9, pi11, pi12, pi13)
+               (aid, ai2, ai3, ai4, ai5) ->
+               pid .== aid
+               )
+             (selectTable productTable)
+             (joinF
+               (\(a1, a2, a3, a4, a5) (b1, b2) ->
+                 (b1, b2, a3, a4, a5)
+                 )
+               (\(a1, a2, a3, a4, a5) (b1, b2) ->
+                 (a1 .== b1) .&& (a2 .== b2)
+                 )
+               (selectTable amountTable)
+               (aggregate
+                 ((,)
+                   <$> P.lmap fst O.groupBy
+                   <*> P.lmap snd O.max
+                   )
+                 (arr (\(a, b, c, d, e) -> (a, b)) <<< selectTable amountTable))
+               ) -< ()
+            -- <<< arr (\_ -> (selectTable productTable, selectTable amountTable)) -< ()
+      restrict -< case refine of
+        AllProducts -> C.constant True
+        AvailableProducts -> a3 ./= (C.constant (0 :: Int) :: Column PGInt4)
+        DepletedProducts -> a3 .== (C.constant (0 :: Int) :: Column PGInt4)
+      returnA -< (p, i2, i6, i7, i8, i9, i11, i12, i13, a3, a4)
+  )
 
 queryAmounts
   :: PGS.Connection
@@ -164,9 +189,20 @@ queryAmounts conn pid = runSelect conn $ proc () -> do
 
 generateProductOverview
   :: PGS.Connection
-  -> (Int, Text, Int, Maybe Int, Maybe Int, Int, Int, Maybe Int, Maybe Text)
+  -> ( Int
+     , Text
+     , Int
+     , Maybe Int
+     , Maybe Int
+     , Int
+     , Int
+     , Maybe Int
+     , Maybe Text
+     , Int
+     , Int
+     )
   -> MateHandler ProductOverview
-generateProductOverview conn (i1, i2, i3, i4, i5, i6, i7, i8, i9) = do
+generateProductOverview conn (i1, i2, i3, i4, i5, i6, i7, i8, i9, a3, a4) = do
   amounts <- liftIO $ queryAmounts conn i1
   (ii3, ii4) <- return $ (\(_, _, y, x, _) -> (x, y)) $ head amounts
   let ii5 = snd $
@@ -181,38 +217,22 @@ generateProductOverview conn (i1, i2, i3, i4, i5, i6, i7, i8, i9) = do
       ii10 = snd $ foldl (\(bef, tot) (_, _, amo, _, ver) ->
         if ver
         then (amo, tot)
-        else (amo, tot + max 0 (bef - amo))
+        else (amo, tot + Prelude.max 0 (bef - amo))
         )
         (0, 0)
         (Prelude.reverse amounts)
   return $ ProductOverview
-    i1 i2 ii3 ii4 ii5 i3 i4 i5 i6 ii10 i7 i8 i9
+    i1 i2 a3 a4 ii5 i3 i4 i5 i6 ii10 i7 i8 i9
 
 productOverviewSelectSingle
   :: Int
   -> PGS.Connection
   -> MateHandler ProductOverview
 productOverviewSelectSingle pid conn = do
-  prods <- liftIO $ runSelect conn
-    ( proc () -> do
-        (i1, i2, i6, i7, i8, i9, i11, i12, i13) <- queryTable productTable -< ()
-        restrict -< C.constant pid .== i1
-        returnA -< (i1, i2, i6, i7, i8, i9, i11, i12, i13)
-    ) :: MateHandler
-        [ ( Int
-          , T.Text
-          , Int
-          , Maybe Int
-          , Maybe Int
-          , Int
-          , Int
-          , Maybe Int
-          , Maybe T.Text
-          )
-        ]
+  prods <- liftIO $ runSelect conn (produceProductOverviews AllProducts)
   head <$> mapM
     (generateProductOverview conn)
-    prods
+    (Prelude.filter (\(p, _, _, _, _, _, _, _, _, _, _) -> p == pid) prods)
 
 
 productShortOverviewSelect
@@ -220,37 +240,24 @@ productShortOverviewSelect
   -> PGS.Connection
   -> MateHandler [ProductShortOverview]
 productShortOverviewSelect refine conn = do
-  prods <- liftIO $ runSelect conn
-    ( proc () -> do
-        (i1, i2, i6, i7, i8, i9, i11, i12, i13) <- queryTable productTable -< ()
-        (a1, _, a3, _, _) <-
-          limit 1 (
-            orderBy (desc (\(_, ts, _, _, _) -> ts)) (queryTable amountTable))
-              -< ()
-        restrict -< a1 .== i1
-        restrict -< case refine of
-          AllProducts -> C.constant True
-          AvailableProducts -> a3 ./= C.constant (0 :: Int)
-          DepletedProducts -> a3 .== C.constant (0 :: Int)
-        returnA -< (i1, i2, i6, i7, i8, i9, i11, i12, i13)
-    ) :: MateHandler
-        [ ( Int
-          , T.Text
-          , Int
-          , Maybe Int
-          , Maybe Int
-          , Int
-          , Int
-          , Maybe Int
-          , Maybe T.Text
-          )
-        ]
+  prods <- liftIO $ runSelect conn (produceProductOverviews refine)
+    :: MateHandler [
+       ( Int
+       , Text
+       , Int
+       , Maybe Int
+       , Maybe Int
+       , Int
+       , Int
+       , Maybe Int
+       , Maybe Text
+       , Int
+       , Int
+       )]
   mapM
-    (\(i1, i2, i3, i4, _, _, _, _, _) -> do
-      amounts <- liftIO $ queryAmounts conn i1
-      (ii3, ii4) <- return $ (\(_, _, y, x, _) -> (x, y)) $ head amounts
+    (\(i1, i2, i3, i4, _, _, _, _, _, a3, a4) -> do
       return $ ProductShortOverview
-        i1 i2 ii3 ii4 i3 i4
+        i1 i2 a4 a3 i3 i4
       )
     prods
 
