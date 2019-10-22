@@ -15,8 +15,6 @@ import Control.Arrow
 import qualified Database.PostgreSQL.Simple as PGS
 
 import qualified Data.Profunctor as P
-import qualified Data.Profunctor.Product as PP
-import qualified Data.Profunctor.Product.Default as D
 
 import Opaleye as O
 import Opaleye.Constant as C
@@ -132,7 +130,7 @@ produceProductOverviews refine =
       (p, i2, i6, i7, i8, i9, i11, i12, i13, a3, a4)
         <- leftJoinF
              (\(pid, pi2, pi6, pi7, pi8, pi9, pi11, pi12, pi13)
-               (aid, ai2, ai3, ai4, ai5) ->
+               (_, _, ai3, ai4, _) ->
                  (pid, pi2, pi6, pi7, pi8, pi9, pi11, pi12, pi13, ai3, ai4)
                )
              (\_ ->
@@ -149,16 +147,16 @@ produceProductOverviews refine =
                , (C.constant (0 :: Int) :: Column PGInt4)
                )
                )
-             (\(pid, pi2, pi6, pi7, pi8, pi9, pi11, pi12, pi13)
-               (aid, ai2, ai3, ai4, ai5) ->
+             (\(pid, _, _, _, _, _, _, _, _)
+               (aid, _, _, _, _) ->
                pid .== aid
                )
              (selectTable productTable)
              (joinF
-               (\(a1, a2, a3, a4, a5) (b1, b2) ->
+               (\(_, _, a3, a4, a5) (b1, b2) ->
                  (b1, b2, a3, a4, a5)
                  )
-               (\(a1, a2, a3, a4, a5) (b1, b2) ->
+               (\(a1, a2, _, _, _) (b1, b2) ->
                  (a1 .== b1) .&& (a2 .== b2)
                  )
                (selectTable amountTable)
@@ -167,7 +165,7 @@ produceProductOverviews refine =
                    <$> P.lmap fst O.groupBy
                    <*> P.lmap snd O.max
                    )
-                 (arr (\(a, b, c, d, e) -> (a, b)) <<< selectTable amountTable))
+                 (arr (\(a, b, _, _, _) -> (a, b)) <<< selectTable amountTable))
                ) -< ()
             -- <<< arr (\_ -> (selectTable productTable, selectTable amountTable)) -< ()
       restrict -< case refine of
@@ -204,7 +202,6 @@ generateProductOverview
   -> MateHandler ProductOverview
 generateProductOverview conn (i1, i2, i3, i4, i5, i6, i7, i8, i9, a3, a4) = do
   amounts <- liftIO $ queryAmounts conn i1
-  (ii3, ii4) <- return $ (\(_, _, y, x, _) -> (x, y)) $ head amounts
   let ii5 = snd $
         foldl
           (\(bef, van) (_, _, amo, _, ver) ->
@@ -222,7 +219,7 @@ generateProductOverview conn (i1, i2, i3, i4, i5, i6, i7, i8, i9, a3, a4) = do
         (0, 0)
         (Prelude.reverse amounts)
   return $ ProductOverview
-    i1 i2 a3 a4 ii5 i3 i4 i5 i6 ii10 i7 i8 i9
+    i1 i2 a4 a3 ii5 i3 i4 i5 i6 ii10 i7 i8 i9
 
 productOverviewSelectSingle
   :: Int
