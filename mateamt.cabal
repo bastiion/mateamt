@@ -22,9 +22,13 @@ flag develop
 
 executable mateamt
   main-is:             Main.hs
+  other-modules:       AppTypes
+                     , AppTypes.Configuration
   -- other-extensions:
   build-depends:       base ^>=4.12.0.0
                      , mateamt
+                     , text
+                     , bytestring
                      , base16-bytestring
                      , containers
                      , mtl
@@ -37,6 +41,8 @@ executable mateamt
                      , warp
                      , wai
                      , wai-logger
+                     , HsYAML
+                     , optparse-applicative
   hs-source-dirs:      app
   ghc-options:       -Wall
   default-language:    Haskell2010
