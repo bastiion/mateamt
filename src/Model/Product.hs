@@ -238,8 +238,8 @@ productShortOverviewSelect
   -> MateHandler [ProductShortOverview]
 productShortOverviewSelect refine conn = do
   prods <- liftIO $ runSelect conn (produceProductOverviews refine)
-    :: MateHandler [
-       ( Int
+    :: MateHandler
+      [( Int
        , Text
        , Int
        , Maybe Int

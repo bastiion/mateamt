@@ -8,8 +8,8 @@ import GHC.Generics
 
 
 data PurchaseDetail = PurchaseDetail
-  { purchaseDetailBeverage :: Int
-  , purchaseDetailAmount   :: Int
+  { purchaseDetailProduct :: Int
+  , purchaseDetailAmount  :: Int
   }
   deriving (Generic, Show)
 
