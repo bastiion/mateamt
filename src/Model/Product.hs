@@ -128,7 +128,7 @@ produceProductOverviews
 produceProductOverviews refine =
   ( proc () -> do
       (p, i2, i6, i7, i8, i9, i11, i12, i13, a3, a4)
-        <- leftJoinF
+        <- orderBy (asc (\(_, a2, _, _, _, _, _, _, _, _, _) -> a2)) (leftJoinF
              (\(pid, pi2, pi6, pi7, pi8, pi9, pi11, pi12, pi13)
                (_, _, ai3, ai4, _) ->
                  (pid, pi2, pi6, pi7, pi8, pi9, pi11, pi12, pi13, ai3, ai4)
@@ -166,7 +166,7 @@ produceProductOverviews refine =
                    <*> P.lmap snd O.max
                    )
                  (arr (\(a, b, _, _, _) -> (a, b)) <<< selectTable amountTable))
-               ) -< ()
+               )) -< ()
             -- <<< arr (\_ -> (selectTable productTable, selectTable amountTable)) -< ()
       restrict -< case refine of
         AllProducts -> C.constant True
