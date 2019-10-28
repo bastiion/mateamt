@@ -24,6 +24,7 @@ executable mateamt
   main-is:             Main.hs
   other-modules:       AppTypes
                      , AppTypes.Configuration
+                     , Janitor
   -- other-extensions:
   build-depends:       base ^>=4.12.0.0
                      , mateamt
