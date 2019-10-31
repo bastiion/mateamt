@@ -332,6 +332,17 @@ deleteTokenByUserId uid conn = liftIO $ runDelete_ conn $ Delete
   }
 
 
+deleteOldTokens
+  :: UTCTime
+  -> PGS.Connection
+  -> IO Int64
+deleteOldTokens now conn = runDelete_ conn $ Delete
+  { dTable     = tokenTable
+  , dWhere     = \(_, _, expiry, _) -> expiry .< C.constant now
+  , dReturning = rCount
+  }
+
+
 newTicket :: Int -> AuthMethod -> MateHandler (Maybe T.Text, AuthTicket)
 newTicket ident method = do
   store <- asks rsTicketStore

@@ -34,6 +34,7 @@ import Model as M
 import AppTypes
 import Types
 import Control
+import Janitor
 
 main :: IO ()
 main = do
@@ -71,6 +72,7 @@ main = do
           void $ execute_ conn initAuthData
           void $ execute_ conn initAmount
           void $ execute_ conn initJournal
+          forkCleanProcess conn store
           withStdoutLogger $ \ilog -> do
             let settings = setPort (fromIntegral lport) $
                   setHost (fromString $ T.unpack lhost) $
