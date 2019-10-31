@@ -36,6 +36,7 @@ executable mateamt
                      , opaleye
                      , postgresql-simple
                      , stm
+                     , network
                      , servant
                      , servant-server
                      , time

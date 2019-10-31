@@ -16,6 +16,7 @@ data ServerConfig = ServerConfig
   , configCurrencySymbol :: T.Text
   , configListenPort :: Word
   , configListenHost :: T.Text
+  , configMaxConnectionsPerClient :: Word
   }
   deriving (Show)
 
@@ -29,6 +30,7 @@ instance FromYAML ServerConfig where
     <*> m .: "currency"
     <*> m .: "listen_port"
     <*> m .:? "listen_host" .!= "127.0.0.1"
+    <*> m .:? "max_connections_per_client" .!= 100
 
 newtype Options = Options
   { optConfigLocation :: T.Text
