@@ -68,23 +68,25 @@ userSelect
   -> MateHandler [UserSummary]
 userSelect ref conn = do
   today <- utctDay <$> liftIO getCurrentTime
-  users <- liftIO $ runSelect conn (case ref of
-      AllUsers -> selectTable userTable
-      ActiveUsers -> keepWhen (\(_, _, _, ts, _, _) ->
-        ts .>= C.constant (addDays (-30) today)
-        ) <<< queryTable userTable
-      OldUsers -> keepWhen (\(_, _, _, ts, _, _) ->
-        ts .<= C.constant (addDays (-30) today)
-        ) <<< queryTable userTable
-      ) :: MateHandler
-          [ ( Int
-            , Text
-            , Int
-            , Day
-            , Maybe Text
-            , Maybe Int
-            )
-          ]
+  users <- liftIO $ runSelect conn (
+    orderBy (asc (\(_, ident, _, _, _, _) -> ident)) (
+      keepWhen (\(_, _, _, ts, _, _) -> case ref of
+        AllUsers ->
+          C.constant True
+        ActiveUsers ->
+          ts .>= C.constant (addDays (-30) today)
+        OldUsers ->
+          ts .< C.constant (addDays (-30) today)
+        ) <<< selectTable userTable)
+        ) :: MateHandler
+            [ ( Int
+              , Text
+              , Int
+              , Day
+              , Maybe Text
+              , Maybe Int
+              )
+            ]
   mapM
     (\(i1, i2, _, _, _, i6) -> return $
       UserSummary i1 i2 i6
