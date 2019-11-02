@@ -15,9 +15,15 @@ journalShow
   -> Maybe Int
   -> Maybe Int
   -> MateHandler [JournalEntry]
-journalShow (Just _) mlimit moffset = do
-  conn <- asks rsConnection
-  selectJournalEntries mlimit moffset conn
+journalShow (Just (_, method)) mlimit moffset = do
+  if method `elem` [PrimaryPass, ChallengeResponse]
+  then do
+    conn <- asks rsConnection
+    selectJournalEntries mlimit moffset conn
+  else
+    throwError $ err401
+      { errBody = "Wrong Authentication present"
+      }
 journalShow Nothing _ _ =
   throwError $ err401
     { errBody = "No Authentication present"

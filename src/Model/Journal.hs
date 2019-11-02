@@ -3,7 +3,7 @@
 {-# LANGUAGE Arrows #-}
 module Model.Journal where
 
-import Data.Maybe (isJust)
+import Data.Maybe (isJust, fromJust)
 
 import Data.Time (UTCTime)
 import Data.Time.Clock
@@ -91,11 +91,11 @@ selectJournalEntries mlimit moffset conn = liftIO $ do
       (JournalEntry id_ descr ts (tot - before) tot check : fin, tot)
       )
     ( []
-    , if isJust mlimit && not (null entries)
+    , if isJust mlimit && length entries > fromJust mlimit
       then (\(_, _, _, x, _) -> x) (last entries)
       else 0
     )
-    ( if isJust mlimit && length entries > 1
+    ( if isJust mlimit && length entries > fromJust mlimit
       then init entries
       else entries
       )
