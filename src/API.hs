@@ -91,39 +91,39 @@ buyLink :: Link
 
 journalShowLink :: Maybe Int -> Maybe Int -> Link
 
-avatarGetLink :: Int -> Link
+-- avatarGetLink :: Int -> Link
 avaterInsertLink :: Link
 avatarUpdateLink :: Int -> Link
 avatarListLink :: Link
 
-( (authGetLink :: Link) :<|>
-  (authSendLink :: Link) :<|>
-  (authLogoutLink :: Link) :<|>
+( authGetLink :<|>
+  authSendLink :<|>
+  authLogoutLink :<|>
 
-  (authManageListLink :: Link) :<|>
-  (authManageNewAuthLink :: Link) :<|>
-  (authManageDeleteAuthLink :: Link) :<|>
+  authManageListLink :<|>
+  authManageNewAuthLink :<|>
+  authManageDeleteAuthLink :<|>
 
-  (userNewLink :: Link) :<|>
-  (userGetLink :: Link) :<|>
-  (userUpdateLink :: Link) :<|>
-  (userListLink :: Maybe UserRefine -> Link) :<|>
-  (userRechargeLink :: Link) :<|>
-  (userTransferLink :: Link) :<|>
+  userNewLink :<|>
+  userGetLink :<|>
+  userUpdateLink :<|>
+  userListLink :<|>
+  userRechargeLink :<|>
+  userTransferLink :<|>
 
-  (productNewLink :: Link) :<|>
-  (productOverviewLink :: Int -> Link) :<|>
-  (productStockRefillLink :: Link) :<|>
-  (productStockUpdateLink :: Link) :<|>
-  (productListLink :: Maybe ProductRefine -> Link) :<|>
-  (productShortListLink :: Maybe ProductRefine -> Link) :<|>
+  productNewLink :<|>
+  productOverviewLink :<|>
+  productStockRefillLink :<|>
+  productStockUpdateLink :<|>
+  productListLink :<|>
+  productShortListLink :<|>
 
-  (buyLink :: Link) :<|>
+  buyLink :<|>
 
-  (journalShowLink :: Maybe Int -> Maybe Int -> Link) :<|>
+  journalShowLink :<|>
 
-  (avatarGetLink :: Int -> Link) :<|>
-  (avaterInsertLink :: Link) :<|>
-  (avatarUpdateLink :: Int -> Link) :<|>
-  (avatarListLink :: Link)
+  avatarGetLink :<|>
+  avaterInsertLink :<|>
+  avatarUpdateLink :<|>
+  avatarListLink
   ) = allLinks (Proxy :: Proxy MateAPI)

@@ -26,7 +26,7 @@ executable mateamt
                      , AppTypes.Configuration
                      , Janitor
   -- other-extensions:
-  build-depends:       base ^>=4.12.0.0
+  build-depends:       base >=4.12.0.0 && < 5
                      , mateamt
                      , text
                      , bytestring
@@ -43,7 +43,7 @@ executable mateamt
                      , warp
                      , wai
                      , wai-logger
-                     , HsYAML
+                     , HsYAML >= 0.2.1.0
                      , optparse-applicative
   hs-source-dirs:      app
   ghc-options:       -Wall
@@ -77,10 +77,10 @@ library
                      , Types.Avatar
                      , Util
   -- other-extensions:
-  build-depends:       base ^>=4.12.0.0
+  build-depends:       base >=4.12.0.0 && < 5
                      , servant
                      , servant-server
-                     , servant-rawm
+                     , servant-rawm >= 0.3.0.0
                      , opaleye
                      , aeson
                      , text
