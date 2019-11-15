@@ -55,8 +55,8 @@ amountTable = table "amount" (
   )
 
 insertNewEmptyAmount
-  :: Int           -- | the associated product id
-  -> ProductSubmit -- | submitted product data
+  :: Int -- ^ the associated product id
+  -> ProductSubmit -- ^ submitted product data
   -> PGS.Connection
   -> MateHandler Int
 insertNewEmptyAmount bevid (ProductSubmit _ price _ _ _ _ _ _ _) conn =
@@ -143,7 +143,7 @@ getLatestTotalPrice (PurchaseDetail pid amount) conn = do
 checkProductAvailability
   :: PurchaseDetail
   -> PGS.Connection
-  -> MateHandler (Maybe Int) -- | Returns maybe missing amount
+  -> MateHandler (Maybe Int) -- ^ Returns maybe missing amount
 checkProductAvailability (PurchaseDetail pid amount) conn = do
   realamount <- (\(_, _, ramount, _, _) -> ramount) . head <$>
     (liftIO $ runSelect conn $ limit 1 $
