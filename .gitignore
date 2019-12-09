@@ -7,3 +7,4 @@ dist/
 *.prof
 .ghc*
 cabal.project.*
+*.bak*
