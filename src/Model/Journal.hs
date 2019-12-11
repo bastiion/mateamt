@@ -151,3 +151,29 @@ insertNewJournalEntry (JournalSubmit descr amount) conn = do
       , iReturning = rReturning (\(id_, _, _, _, _) -> id_)
       , iOnConflict = Nothing
       }
+
+insertNewCashCheck
+  :: JournalCashCheck
+  -> PGS.Connection
+  -> MateHandler Int
+insertNewCashCheck (JournalCashCheck amount) conn = do
+  -- lastTotal <- (\case
+  --   Just j  -> journalEntryTotalAmount j
+  --   Nothing -> 0
+  --   ) <$> selectLatestJournalEntry conn
+  liftIO $ do
+    now <- getCurrentTime
+    fmap head $ runInsert_ conn $ Insert
+      { iTable     = journalTable
+      , iRows      =
+        [
+        ( C.constant (Nothing :: Maybe Int)
+        , C.constant now
+        , C.constant ("Cash check" :: String)
+        , C.constant amount
+        , C.constant True
+        )
+        ]
+      , iReturning = rReturning (\(id_, _, _, _, _) -> id_)
+      , iOnConflict = Nothing
+      }

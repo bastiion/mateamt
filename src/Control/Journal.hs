@@ -3,6 +3,7 @@ module Control.Journal where
 
 import Servant
 
+import Control.Monad (void)
 import Control.Monad.Reader (asks)
 
 -- internal imports
@@ -25,6 +26,24 @@ journalShow (Just (_, method)) mlimit moffset = do
       { errBody = "Wrong Authentication present"
       }
 journalShow Nothing _ _ =
+  throwError $ err401
+    { errBody = "No Authentication present"
+    }
+
+journalCheck
+  :: Maybe (Int, AuthMethod)
+  -> JournalCashCheck
+  -> MateHandler ()
+journalCheck (Just (_, method)) check = do
+  if method `elem` [PrimaryPass, ChallengeResponse]
+  then do
+    conn <- asks rsConnection
+    void $ insertNewCashCheck check conn
+  else
+    throwError $ err401
+      { errBody = "Wrong Authentication present"
+      }
+journalCheck Nothing _ =
   throwError $ err401
     { errBody = "No Authentication present"
     }

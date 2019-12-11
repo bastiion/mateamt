@@ -179,6 +179,7 @@ app initState =
         buy :<|>
 
         journalShow :<|>
+        journalCheck :<|>
 
         avatarGet :<|>
         avatarInsert :<|>

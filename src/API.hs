@@ -55,7 +55,11 @@ type MateAPI =
     :> Post '[JSON] PurchaseResult
 
   :<|> "journal" :> AuthProtect "header-auth" :> QueryParam "limit" Int
-    :> QueryParam "offset" Int :> Get '[JSON] [JournalEntry]
+    :> QueryParam "offset" Int
+    :> Get '[JSON] [JournalEntry]
+  :<|> "journal" :> AuthProtect "header-auth"
+    :> ReqBody '[JSON] JournalCashCheck
+    :> Post '[JSON] ()
 
   :<|> "avatar" :> Capture "id" Int :> RawM
   :<|> "avatar" :> AuthProtect "header-auth" :> ReqBody '[JSON] AvatarData
@@ -90,6 +94,7 @@ productShortListLink :: Maybe ProductRefine -> Link
 buyLink :: Link
 
 journalShowLink :: Maybe Int -> Maybe Int -> Link
+journalPostCheck :: Link
 
 -- avatarGetLink :: Int -> Link
 avaterInsertLink :: Link
@@ -121,6 +126,7 @@ avatarListLink :: Link
   buyLink :<|>
 
   journalShowLink :<|>
+  journalPostCheck :<|>
 
   avatarGetLink :<|>
   avaterInsertLink :<|>
