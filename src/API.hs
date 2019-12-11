@@ -96,7 +96,7 @@ buyLink :: Link
 journalShowLink :: Maybe Int -> Maybe Int -> Link
 journalPostCheck :: Link
 
--- avatarGetLink :: Int -> Link
+avatarGetLink :: Int -> Link
 avaterInsertLink :: Link
 avatarUpdateLink :: Int -> Link
 avatarListLink :: Link
