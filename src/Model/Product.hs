@@ -126,54 +126,53 @@ produceProductOverviews
       , Column PGInt4
       )
 produceProductOverviews refine =
-  ( proc () -> do
-      (p, i2, i6, i7, i8, i9, i11, i12, i13, a3, a4)
-        <- orderBy (asc (\(_, a2, _, _, _, _, _, _, _, _, _) -> a2)) (leftJoinF
-             (\(pid, pi2, pi6, pi7, pi8, pi9, pi11, pi12, pi13)
-               (_, _, ai3, ai4, _) ->
-                 (pid, pi2, pi6, pi7, pi8, pi9, pi11, pi12, pi13, ai3, ai4)
+  proc () -> do
+    (p, i2, i6, i7, i8, i9, i11, i12, i13, a3, a4)
+      <- orderBy (asc (\(_, a2, _, _, _, _, _, _, _, _, _) -> a2)) (leftJoinF
+           (\(pid, pi2, pi6, pi7, pi8, pi9, pi11, pi12, pi13)
+             (_, _, ai3, ai4, _) ->
+               (pid, pi2, pi6, pi7, pi8, pi9, pi11, pi12, pi13, ai3, ai4)
+             )
+           (const
+             ( C.constant (0 :: Int) :: Column PGInt4
+             , C.constant ("ERROR PRODUCT" :: T.Text) :: Column PGText
+             , C.constant (0 :: Int) :: Column PGInt4
+             , C.constant (Just (0 :: Int)) :: Column (Nullable PGInt4)
+             , C.constant (Just (0 :: Int)) :: Column (Nullable PGInt4)
+             , C.constant (0 :: Int) :: Column PGInt4
+             , C.constant (0 :: Int) :: Column PGInt4
+             , C.constant (Just (0 :: Int)) :: Column (Nullable PGInt4)
+             , C.constant (Just ("" :: T.Text)) :: Column (Nullable PGText)
+             , C.constant (0 :: Int) :: Column PGInt4
+             , C.constant (0 :: Int) :: Column PGInt4
+             )
+             )
+           (\(pid, _, _, _, _, _, _, _, _)
+             (aid, _, _, _, _) ->
+             pid .== aid
+             )
+           (selectTable productTable)
+           (joinF
+             (\(_, _, a3, a4, a5) (b1, b2) ->
+               (b1, b2, a3, a4, a5)
                )
-             (\_ ->
-               ( (C.constant (0 :: Int) :: Column PGInt4)
-               , (C.constant ("ERROR PRODUCT" :: T.Text) :: Column PGText)
-               , (C.constant (0 :: Int) :: Column PGInt4)
-               , (C.constant (Just (0 :: Int)) :: Column (Nullable PGInt4))
-               , (C.constant (Just (0 :: Int)) :: Column (Nullable PGInt4))
-               , (C.constant (0 :: Int) :: Column PGInt4)
-               , (C.constant (0 :: Int) :: Column PGInt4)
-               , (C.constant (Just (0 :: Int)) :: Column (Nullable PGInt4))
-               , (C.constant (Just ("" :: T.Text)) :: Column (Nullable PGText))
-               , (C.constant (0 :: Int) :: Column PGInt4)
-               , (C.constant (0 :: Int) :: Column PGInt4)
+             (\(a1, a2, _, _, _) (b1, b2) ->
+               (a1 .== b1) .&& (a2 .== b2)
                )
-               )
-             (\(pid, _, _, _, _, _, _, _, _)
-               (aid, _, _, _, _) ->
-               pid .== aid
-               )
-             (selectTable productTable)
-             (joinF
-               (\(_, _, a3, a4, a5) (b1, b2) ->
-                 (b1, b2, a3, a4, a5)
+             (selectTable amountTable)
+             (aggregate
+               ((,)
+                 <$> P.lmap fst O.groupBy
+                 <*> P.lmap snd O.max
                  )
-               (\(a1, a2, _, _, _) (b1, b2) ->
-                 (a1 .== b1) .&& (a2 .== b2)
-                 )
-               (selectTable amountTable)
-               (aggregate
-                 ((,)
-                   <$> P.lmap fst O.groupBy
-                   <*> P.lmap snd O.max
-                   )
-                 (arr (\(a, b, _, _, _) -> (a, b)) <<< selectTable amountTable))
-               )) -< ()
-            -- <<< arr (\_ -> (selectTable productTable, selectTable amountTable)) -< ()
-      restrict -< case refine of
-        AllProducts -> C.constant True
-        AvailableProducts -> a3 ./= (C.constant (0 :: Int) :: Column PGInt4)
-        DepletedProducts -> a3 .== (C.constant (0 :: Int) :: Column PGInt4)
-      returnA -< (p, i2, i6, i7, i8, i9, i11, i12, i13, a3, a4)
-  )
+               (arr (\(a, b, _, _, _) -> (a, b)) <<< selectTable amountTable))
+             )) -< ()
+          -- <<< arr (\_ -> (selectTable productTable, selectTable amountTable)) -< ()
+    restrict -< case refine of
+      AllProducts -> C.constant True
+      AvailableProducts -> a3 ./= (C.constant (0 :: Int) :: Column PGInt4)
+      DepletedProducts -> a3 .== (C.constant (0 :: Int) :: Column PGInt4)
+    returnA -< (p, i2, i6, i7, i8, i9, i11, i12, i13, a3, a4)
 
 queryAmounts
   :: PGS.Connection
@@ -252,7 +251,7 @@ productShortOverviewSelect refine conn = do
        , Int
        )]
   mapM
-    (\(i1, i2, i3, i4, _, _, _, _, _, a3, a4) -> do
+    (\(i1, i2, i3, i4, _, _, _, _, _, a3, a4) ->
       return $ ProductShortOverview
         i1 i2 a4 a3 i3 i4
       )

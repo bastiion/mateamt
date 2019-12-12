@@ -16,7 +16,7 @@ journalShow
   -> Maybe Int
   -> Maybe Int
   -> MateHandler [JournalEntry]
-journalShow (Just (_, method)) mlimit moffset = do
+journalShow (Just (_, method)) mlimit moffset =
   if method `elem` [PrimaryPass, ChallengeResponse]
   then do
     conn <- asks rsConnection
@@ -34,7 +34,7 @@ journalCheck
   :: Maybe (Int, AuthMethod)
   -> JournalCashCheck
   -> MateHandler ()
-journalCheck (Just (_, method)) check = do
+journalCheck (Just (_, method)) check =
   if method `elem` [PrimaryPass, ChallengeResponse]
   then do
     conn <- asks rsConnection

@@ -156,7 +156,7 @@ insertNewCashCheck
   :: JournalCashCheck
   -> PGS.Connection
   -> MateHandler Int
-insertNewCashCheck (JournalCashCheck amount) conn = do
+insertNewCashCheck (JournalCashCheck amount) conn =
   -- lastTotal <- (\case
   --   Just j  -> journalEntryTotalAmount j
   --   Nothing -> 0

@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Janitor where
 
 import qualified Database.PostgreSQL.Simple as PGS
