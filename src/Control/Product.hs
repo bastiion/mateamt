@@ -55,14 +55,20 @@ productStockUpdate
   :: Maybe (Int, AuthMethod)
   -> [AmountUpdate]
   -> MateHandler ()
-productStockUpdate (Just _) amoups =
-  if all ((>= 0) . amountUpdateRealAmount) amoups
-  then do
-    conn <- asks rsConnection
-    void $ manualProductAmountUpdate amoups conn
+productStockUpdate (Just (_, method)) amoups =
+  if method `elem` [PrimaryPass, ChallengeResponse]
+  then
+    if all ((>= 0) . amountUpdateRealAmount) amoups
+    then do
+      conn <- asks rsConnection
+      void $ manualProductAmountUpdate amoups conn
+    else
+      throwError $ err400
+        { errBody = "Amounts less than 0 are not acceptable."
+        }
   else
-    throwError $ err400
-      { errBody = "Amounts less than 0 are not acceptable."
+    throwError $ err401
+      { errBody = "Wrong Authentication present."
       }
 productStockUpdate Nothing _ =
   throwError $ err401
