@@ -193,36 +193,6 @@ manualProductAmountUpdate aups conn =
     aups
 
 
-manualProductAmountRefill
-  :: [AmountRefill]
-  -> PGS.Connection
-  -> MateHandler [Int]
-manualProductAmountRefill aups conn =
-  mapM
-    (\(AmountRefill pid amount) -> do
-      oldamount <- getLatestAmountByProductId pid conn
-      oldprice <- getLatestPriceByProductId pid conn
-      head <$> liftIO (do
-        now <- getCurrentTime
-        runInsert_ conn $ Insert
-          { iTable = amountTable
-          , iRows  =
-            [
-            ( C.constant pid
-            , C.constant now
-            , C.constant (oldamount + amount)
-            , C.constant oldprice
-            , C.constant False
-            )
-            ]
-          , iReturning = rReturning (\(id_, _, _, _, _) -> id_)
-          , iOnConflict = Nothing
-          }
-        )
-      )
-    aups
-
-
 postBuyProductAmountUpdate
   :: PurchaseDetail
   -> PGS.Connection

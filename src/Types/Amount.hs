@@ -18,8 +18,9 @@ instance FromJSON AmountUpdate
 
 
 data AmountRefill = AmountRefill
-  { amountRefillProductId  :: Int
-  , amountRefillAmount     :: Int
+  { amountRefillProductId     :: Int
+  , amountRefillAmountSingles :: Int
+  , amountRefillAmountCrates  :: Int
   }
   deriving (Show, Generic)
 

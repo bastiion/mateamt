@@ -5,6 +5,7 @@
 module Model.Product where
 
 import Data.Text as T hiding (head, foldl)
+import Data.Time (getCurrentTime)
 import Data.Time.Clock (UTCTime)
 import Data.Profunctor.Product (p9)
 
@@ -81,6 +82,35 @@ productSelect
 productSelect conn = do
   prods <- liftIO $ runSelect conn
     ( keepWhen (\_ -> C.constant True) <<< queryTable productTable
+    ) :: MateHandler
+        [ ( Int
+          , T.Text
+          , Int
+          , Maybe Int
+          , Maybe Int
+          , Int
+          , Int
+          , Maybe Int
+          , Maybe T.Text
+          )
+        ]
+  mapM
+    (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) -> return $
+      Product i1 i2 i3 i4 i5 i6 i7 i8 i9
+      )
+    prods
+
+
+productSelectSingle
+  :: Int
+  -> PGS.Connection
+  -> MateHandler [Product]
+productSelectSingle pid conn = do
+  prods <- liftIO $ runSelect conn
+    ( limit 1
+      (keepWhen (
+        \(id_, _, _, _, _, _, _, _, _) -> id_ .== C.constant pid
+        ) <<< queryTable productTable)
     ) :: MateHandler
         [ ( Int
           , T.Text
@@ -281,3 +311,34 @@ insertProduct (ProductSubmit ident _ ml ava sup maxi apc ppc artnr) conn =
     , iReturning = rReturning (\(id_, _, _, _, _, _, _, _, _) -> id_)
     , iOnConflict = Nothing
     }
+
+manualProductAmountRefill
+  :: [AmountRefill]
+  -> PGS.Connection
+  -> MateHandler [Int]
+manualProductAmountRefill aups conn =
+  mapM
+    (\(AmountRefill pid amountSingles amountCrates) -> do
+      oldamount <- getLatestAmountByProductId pid conn
+      oldprice <- getLatestPriceByProductId pid conn
+      perCrate <- (productAmountPerCrate . head) <$>
+        productSelectSingle pid conn
+      head <$> liftIO (do
+        now <- getCurrentTime
+        runInsert_ conn $ Insert
+          { iTable = amountTable
+          , iRows  =
+            [
+            ( C.constant pid
+            , C.constant now
+            , C.constant (oldamount + amountSingles + perCrate * amountCrates)
+            , C.constant oldprice
+            , C.constant False
+            )
+            ]
+          , iReturning = rReturning (\(id_, _, _, _, _) -> id_)
+          , iOnConflict = Nothing
+          }
+        )
+      )
+    aups

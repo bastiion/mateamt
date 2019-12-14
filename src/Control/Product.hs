@@ -37,14 +37,29 @@ productStockRefill
   :: Maybe (Int, AuthMethod)
   -> [AmountRefill]
   -> MateHandler ()
-productStockRefill (Just _) amorefs =
-  if all ((>= 0) . amountRefillAmount) amorefs
-  then do
-    conn <- asks rsConnection
-    void $ manualProductAmountRefill amorefs conn
+productStockRefill (Just _) amorefs = do
+  conn <- asks rsConnection
+  prods <- mapM
+    (\refill -> productSelectSingle (amountRefillProductId refill) conn)
+    amorefs
+  if all (not . null) prods
+  then
+    if
+      all
+        (\refill ->
+          (>= 0) (amountRefillAmountSingles refill) &&
+          (>= 0) (amountRefillAmountCrates refill)
+          )
+        amorefs
+    then do
+      void $ manualProductAmountRefill amorefs conn
+    else
+      throwError $ err400
+        { errBody = "Amounts less than 0 are not acceptable."
+        }
   else
     throwError $ err400
-      { errBody = "Amounts less than 0 are not acceptable."
+      { errBody = "Non-existent Products are non-refillable."
       }
 productStockRefill Nothing _ =
   throwError $ err401
