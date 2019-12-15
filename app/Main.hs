@@ -60,6 +60,7 @@ main = do
         lport
         lhost
         max_conn_per_client
+        block_registration
         ) -> do
           conn <- connectPostgreSQL (
             "host='" <> fromString (T.unpack db_host) <> "' " <>
@@ -88,7 +89,7 @@ main = do
                   { rsConnection  = conn
                   , rsTicketStore = store
                   }
-            runSettings settings (app initState)
+            runSettings settings (app block_registration initState)
   where
     opts = info (options <**> helper)
       ( fullDesc
@@ -146,9 +147,9 @@ removeFromTracker tracker saddr = do
             M.delete laddr tmap
     writeTVar tracker nmap
 
-app :: ReadState -> Application
+app :: Bool -> ReadState -> Application
 -- app conn = serveWithContext userApi genAuthServerContext (users conn)
-app initState =
+app block_registration initState =
   serveWithContext mateApi (genAuthServerContext (rsConnection initState)) $
     hoistServerWithContext
       mateApi
@@ -162,7 +163,15 @@ app initState =
         authManageNewAuth :<|>
         authManageDeleteAuth :<|>
 
-        userNew :<|>
+        (
+        if block_registration
+        then
+          const $ throwError $ err406
+            { errBody = "User registration is not allowed."
+            }
+        else
+          userNew
+        ) :<|>
         userGet :<|>
         userUpdate :<|>
         userList :<|>

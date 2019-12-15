@@ -17,6 +17,7 @@ data ServerConfig = ServerConfig
   , configListenPort :: Word
   , configListenHost :: T.Text
   , configMaxConnectionsPerClient :: Word
+  , configBlockRegistration :: Bool
   }
   deriving (Show)
 
@@ -31,6 +32,7 @@ instance FromYAML ServerConfig where
     <*> m .: "listen_port"
     <*> m .:? "listen_host" .!= "127.0.0.1"
     <*> m .:? "max_connections_per_client" .!= 10
+    <*> m .: "block_registration"
 
 newtype Options = Options
   { optConfigLocation :: T.Text
