@@ -331,7 +331,7 @@ manualProductAmountRefill aups conn =
             [
             ( C.constant pid
             , C.constant now
-            , C.constant (oldamount + amountSingles + perCrate * amountCrates)
+            , C.constant (oldamount + (amountSingles + (perCrate * amountCrates)))
             , C.constant oldprice
             , C.constant False
             )
