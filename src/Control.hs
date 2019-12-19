@@ -8,3 +8,4 @@ import Control.User as C
 import Control.Auth as C
 import Control.Product as C
 import Control.Avatar as C
+import Control.Meta as C

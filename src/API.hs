@@ -17,7 +17,7 @@ import Data.Proxy
 
 import Types
 
-type MateAPI =
+type MateAPI = "v1" :> (
   "auth" :> "get" :> ReqBody '[JSON] TicketRequest :> Post '[JSON] AuthInfo
   :<|> "auth" :> ReqBody '[JSON] AuthRequest :> Post '[JSON] AuthResult
   :<|> "auth" :> AuthProtect "header-auth" :> Delete '[JSON] ()
@@ -68,6 +68,9 @@ type MateAPI =
     :> ReqBody '[JSON] AvatarData :> Patch '[JSON] ()
   :<|> "avatar" :> "list" :> Get '[JSON] [Avatar]
 
+  :<|> "meta" :> Get '[JSON] MetaInformation
+  )
+
 
 authGetLink :: Link
 authSendLink :: Link
@@ -101,6 +104,8 @@ avaterInsertLink :: Link
 avatarUpdateLink :: Int -> Link
 avatarListLink :: Link
 
+metaGetLink :: Link
+
 ( authGetLink :<|>
   authSendLink :<|>
   authLogoutLink :<|>
@@ -131,5 +136,7 @@ avatarListLink :: Link
   avatarGetLink :<|>
   avaterInsertLink :<|>
   avatarUpdateLink :<|>
-  avatarListLink
+  avatarListLink :<|>
+
+  metaGetLink
   ) = allLinks (Proxy :: Proxy MateAPI)

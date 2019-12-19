@@ -14,6 +14,7 @@ import Data.ByteString.Lazy as BL hiding (putStrLn)
 import qualified Data.Text as T
 import Data.String
 import Data.YAML
+import Data.Version (showVersion)
 
 import Database.PostgreSQL.Simple
 
@@ -38,6 +39,8 @@ import AppTypes
 import Types
 import Control
 import Janitor
+
+import Paths_mateamt (version)
 
 main :: IO ()
 main = do
@@ -88,6 +91,8 @@ main = do
                 initState = ReadState
                   { rsConnection  = conn
                   , rsTicketStore = store
+                  , rsCurrencySymbol = sym
+                  , rsSoftwareVersion = T.pack (showVersion version)
                   }
             runSettings settings (app block_registration initState)
   where
@@ -193,7 +198,9 @@ app block_registration initState =
         avatarGet :<|>
         avatarInsert :<|>
         avatarUpdate :<|>
-        avatarList
+        avatarList :<|>
+
+        metaGet
       )
 
 mateApi :: Proxy MateAPI
