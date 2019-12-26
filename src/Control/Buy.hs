@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Control.Buy where
 
 import Control.Monad (void, foldM)
@@ -48,7 +49,13 @@ buy auth pds = do
           else PurchaseOK
         )
         missing
-    Nothing ->
+    Nothing -> do
+      void $ insertNewJournalEntry
+        (JournalSubmit
+          ("Cash purchase")
+          price
+          )
+        conn
       return $ PurchaseResult
         (PayAmount price)
         missing
