@@ -4,6 +4,7 @@
 , config ? pkgs.config
 }:
   pkgs.haskell-nix.cabalProject {
-    src = pkgs.haskell-nix.haskellLib.cleanGit { src = ./.; };
+    #src = pkgs.haskell-nix.haskellLib.cleanGit { src = ./.; };
+    src = pkgs.haskell-nix.haskellLib.cleanGit { src = pkgs.nix-gitignore.gitignoreSource [] ./.; };
     ghc = pkgs.buildPackages.pkgs.haskell-nix.compiler.${haskellCompiler};
   }
