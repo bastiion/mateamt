@@ -60,6 +60,18 @@ userUpdate (Just (aid, method)) uds =
       { errBody = "Wrong Authentication present."
       }
 
+userUpdateTimestamp
+  :: Maybe (Int, AuthMethod)
+  -> MateHandler ()
+userUpdateTimestamp (Just (aid, _)) = do
+  now <- liftIO getCurrentTime
+  conn <- asks rsConnection
+  void $ updateUserTimestamp aid (utctDay now) conn
+userUpdateTimestamp Nothing =
+  throwError $ err401
+    { errBody = "No Authentication present."
+    }
+
 userList
   :: Maybe UserRefine
   -> MateHandler [UserSummary]

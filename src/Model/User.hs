@@ -184,6 +184,26 @@ updateUserDetails uid uds now conn = liftIO $ runUpdate_ conn $ Update
   , uReturning  = rCount
   }
 
+updateUserTimestamp
+  :: Int
+  -> Day
+  -> PGS.Connection
+  -> MateHandler Int64
+updateUserTimestamp uid now conn = liftIO $ runUpdate_ conn $ Update
+  { uTable      = userTable
+  , uUpdateWith = updateEasy (\(id_, ident, balance, _, email, ava) ->
+      ( id_
+      , ident
+      , balance
+      , C.constant now
+      , email
+      , ava
+      )
+    )
+  , uWhere      = \(i1, _, _, _, _, _) -> i1 .== C.constant uid
+  , uReturning  = rCount
+  }
+
 addToUserBalance
   :: Int
   -> Int

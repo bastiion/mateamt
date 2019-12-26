@@ -6,6 +6,7 @@ import Control.Monad.Reader (asks)
 
 -- internal imports
 
+import Control.User
 import Types
 import Model
 
@@ -40,6 +41,7 @@ buy auth pds = do
     Just (auid, _) -> do
       void $ addToUserBalance auid (-price) conn
       newBalance <- userBalanceSelect conn auid
+      userUpdateTimestamp auth
       return $ PurchaseResult
         ( if newBalance < 0
           then PurchaseDebtful
