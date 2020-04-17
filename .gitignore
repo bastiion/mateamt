@@ -8,3 +8,4 @@ dist/
 .ghc*
 cabal.project.*
 *.bak*
+report.html
