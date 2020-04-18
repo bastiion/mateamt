@@ -42,8 +42,12 @@ executable mateamt
                      , warp
                      , wai
                      , wai-logger
+                     , wai-middleware-throttle
                      , HsYAML >= 0.2.1.0
                      , optparse-applicative
+                     , case-insensitive
+                     , iproute
+                     , clock
   hs-source-dirs:      app
   ghc-options:       -Wall
   default-language:    Haskell2010
