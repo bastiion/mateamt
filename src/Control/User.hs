@@ -92,8 +92,8 @@ userRecharge (Just (auid, _)) (UserRecharge amount) = do
   ud <- userDetailsSelect auid conn
   void $ insertNewJournalEntry
     (JournalSubmit
-      ("User \"" <> userDetailsIdent ud <> "\" recharged " <>
-        T.pack (show (fromIntegral amount / 100 :: Double)))
+      (Just $ userDetailsId ud)
+      Recharge
       amount
       )
     conn
