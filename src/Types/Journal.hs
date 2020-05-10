@@ -4,19 +4,18 @@ module Types.Journal where
 
 import GHC.Generics
 
-import qualified Data.Text as T (Text)
-
 import Data.Aeson
 
 import Data.Time (UTCTime)
 
 data JournalEntry = JournalEntry
   { journalEntryId          :: Int
-  , journalEntryDescription :: T.Text
   , journalEntryTimestamp   :: UTCTime
+  , journalEntryUser        :: Maybe Int
+  , journalEntryAction      :: JournalAction
   , journalEntryAmount      :: Int
   , journalEntryTotalAmount :: Int
-  , journalEntryIsCheck     :: Bool
+  -- , journalEntryIsCheck     :: Bool
   }
   deriving (Generic, Show)
 
@@ -27,8 +26,9 @@ instance FromJSON JournalEntry
 
 
 data JournalSubmit = JournalSubmit
-  { journalSubmitDescription :: T.Text
-  , journalSubmitAmount      :: Int
+  { journalSubmitUser   :: Maybe Int
+  , journalSubmitAction :: JournalAction
+  , journalSubmitAmount :: Int
   }
   deriving (Generic, Show)
 
@@ -38,8 +38,9 @@ instance ToJSON JournalSubmit where
 instance FromJSON JournalSubmit
 
 
-newtype JournalCashCheck = JournalCashCheck
-  { journalCashCheckTotalAmount :: Int
+data JournalCashCheck = JournalCashCheck
+  { journalCashCheckUser        :: Int
+  , journalCashCheckTotalAmount :: Int
   }
   deriving (Generic, Show)
 
@@ -47,3 +48,16 @@ instance ToJSON JournalCashCheck where
   toEncoding = genericToEncoding defaultOptions
 
 instance FromJSON JournalCashCheck
+
+data JournalAction
+  = CashCheck
+  | Recharge
+  | BuyCash
+  | PayBill
+  | PayOut
+  deriving (Generic, Show, Enum, Eq)
+
+instance ToJSON JournalAction where
+  toEncoding = genericToEncoding defaultOptions
+
+instance FromJSON JournalAction

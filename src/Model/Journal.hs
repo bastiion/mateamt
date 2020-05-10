@@ -30,9 +30,10 @@ initJournal = mconcat
   [ "CREATE TABLE IF NOT EXISTS \"journal\" ("
   , "journal_id             SERIAL      NOT NULL,"
   , "journal_timestamp      TIMESTAMPTZ NOT NULL,"
-  , "journal_description    TEXT        NOT NULL,"
+  , "journal_user           INTEGER,"
+  , "journal_action         INTEGER     NOT NULL,"
   , "journal_total_amount   INTEGER     NOT NULL,"
-  , "journal_entry_is_check BOOLEAN     NOT NULL,"
+  -- , "journal_entry_is_check BOOLEAN     NOT NULL,"
   , "PRIMARY KEY (journal_id)"
   , ")"
   ]
@@ -40,23 +41,26 @@ initJournal = mconcat
 journalTable :: Table
   ( Maybe (Field SqlInt4)
   , Field SqlTimestamptz
-  , Field SqlText
+  , FieldNullable SqlInt4
   , Field SqlInt4
-  , Field SqlBool
+  , Field SqlInt4
+  -- , Field SqlBool
   )
   ( Field SqlInt4
   , Field SqlTimestamptz
-  , Field SqlText
+  , FieldNullable SqlInt4
   , Field SqlInt4
-  , Field SqlBool
+  , Field SqlInt4
+  -- , Field SqlBool
   )
 journalTable = table "journal" (
   p5
     ( tableField "journal_id"
     , tableField "journal_timestamp"
-    , tableField "journal_description"
+    , tableField "journal_user"
+    , tableField "journal_action"
     , tableField "journal_total_amount"
-    , tableField "journal_entry_is_check"
+    -- , tableField "journal_entry_is_check"
     )
   )
 
@@ -81,14 +85,14 @@ selectJournalEntries mlimit moffset conn = liftIO $ do
       ) :: IO
         [ ( Int
           , UTCTime
-          , T.Text
+          , Maybe Int
           , Int
-          , Bool
+          , Int
           )
         ]
   return $ fst $ foldr
-    (\(id_, ts, descr, tot, check) (fin, before)->
-      (JournalEntry id_ descr ts (tot - before) tot check : fin, tot)
+    (\(id_, ts, user, action, tot) (fin, before)->
+      (JournalEntry id_ ts user (toEnum action) (tot - before) tot : fin, tot)
       )
     ( []
     , if isJust mlimit && length entries > fromJust mlimit
@@ -112,16 +116,16 @@ selectLatestJournalEntry conn = liftIO $ do
       ) :: IO
         [ ( Int
           , UTCTime
-          , T.Text
+          , Maybe Int
           , Int
-          , Bool
+          , Int
           )
         ]
   if not (null lastTwoEntries)
   then do
-    let diff = foldl (\acc (_, _, _, tot, _) -> tot - acc) 0 lastTwoEntries
-        (jid, ts, descr, total, check) = head lastTwoEntries
-    return $ Just $ JournalEntry jid descr ts diff total check
+    let diff = foldl (\acc (_, _, _, _, tot) -> tot - acc) 0 lastTwoEntries
+        (jid, ts, user, action, total) = head lastTwoEntries
+    return $ Just $ JournalEntry jid ts user (toEnum action) diff total
   else
     return Nothing
 
@@ -130,7 +134,7 @@ insertNewJournalEntry
   :: JournalSubmit
   -> PGS.Connection
   -> MateHandler Int
-insertNewJournalEntry (JournalSubmit descr amount) conn = do
+insertNewJournalEntry (JournalSubmit user action amount) conn = do
   lastTotal <- (\case
     Just j  -> journalEntryTotalAmount j 
     Nothing -> 0
@@ -143,9 +147,9 @@ insertNewJournalEntry (JournalSubmit descr amount) conn = do
         [
         ( C.constant (Nothing :: Maybe Int)
         , C.constant now
-        , C.constant descr
+        , C.constant user
+        , C.constant (fromEnum action)
         , C.constant (lastTotal + amount)
-        , C.constant False
         )
         ]
       , iReturning = rReturning (\(id_, _, _, _, _) -> id_)
@@ -156,7 +160,7 @@ insertNewCashCheck
   :: JournalCashCheck
   -> PGS.Connection
   -> MateHandler Int
-insertNewCashCheck (JournalCashCheck amount) conn =
+insertNewCashCheck (JournalCashCheck user amount) conn =
   -- lastTotal <- (\case
   --   Just j  -> journalEntryTotalAmount j
   --   Nothing -> 0
@@ -169,9 +173,9 @@ insertNewCashCheck (JournalCashCheck amount) conn =
         [
         ( C.constant (Nothing :: Maybe Int)
         , C.constant now
-        , C.constant ("Cash check" :: String)
+        , C.constant (Just user)
+        , C.constant (fromEnum CashCheck)
         , C.constant amount
-        , C.constant True
         )
         ]
       , iReturning = rReturning (\(id_, _, _, _, _) -> id_)

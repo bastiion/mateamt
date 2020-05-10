@@ -52,7 +52,8 @@ buy auth pds = do
     Nothing -> do
       void $ insertNewJournalEntry
         (JournalSubmit
-          ("Cash purchase")
+          Nothing
+          BuyCash
           price
           )
         conn
