@@ -5,6 +5,8 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Main where
 
+import Prelude as P
+
 import Servant
 import Servant.Server.Experimental.Auth
 
@@ -21,6 +23,8 @@ import qualified Data.CaseInsensitive as CI
 import Data.IP
 
 import Database.PostgreSQL.Simple
+import Database.PostgreSQL.Simple.Migration
+import Database.PostgreSQL.Simple.Util
 
 import Network.Wai
 import Network.Wai.Logger
@@ -81,14 +85,21 @@ main = do
             "password='" <> fromString (T.unpack db_passwd) <> "'"
             )
           store <- newTVarIO S.empty
-          tracker <- newTVarIO M.empty
-          void $ execute_ conn initAvatar
-          void $ execute_ conn initUser
-          void $ execute_ conn initProduct
-          void $ execute_ conn initToken
-          void $ execute_ conn initAuthData
-          void $ execute_ conn initAmount
-          void $ execute_ conn initJournal
+          -- tracker <- newTVarIO M.empty
+          migrationsExist <- existsTable conn "schema_migrations"
+          when (not migrationsExist) $ do
+            withTransaction conn $
+              void $ do
+                runMigration $
+                  MigrationContext MigrationInitialization True conn
+                execute_ conn initAvatar
+                execute_ conn initUser
+                execute_ conn initProduct
+                execute_ conn initToken
+                execute_ conn initAuthData
+                execute_ conn initAmount
+                execute_ conn initJournal
+          -- TODO: check for Migrations
           forkCleanProcess conn store
           withStdoutLogger $ \ilog -> do
             let settings = setPort (fromIntegral lport) $
