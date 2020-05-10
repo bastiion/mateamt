@@ -3,7 +3,7 @@ module Control.User where
 
 import Servant
 
-import Control.Monad (void)
+import Control.Monad (void, when)
 
 import Control.Monad.Reader (asks)
 
@@ -83,23 +83,21 @@ userRecharge
   :: Maybe (Int, AuthMethod)
   -> UserRecharge
   -> MateHandler ()
-userRecharge (Just (auid, _)) (UserRecharge amount) =
-  if amount >= 0
-  then do
-    conn <- asks rsConnection
-    ud <- userDetailsSelect auid conn
-    void $ insertNewJournalEntry
-      (JournalSubmit
-        ("User \"" <> userDetailsIdent ud <> "\" recharged " <>
-          T.pack (show (fromIntegral amount / 100 :: Double)))
-        amount
-        )
-      conn
-    void $ addToUserBalance auid amount conn
-  else
+userRecharge (Just (auid, _)) (UserRecharge amount) = do
+  when (amount < 0) $ do
     throwError $ err400
       { errBody = "Amounts less or equal zero are not acceptable."
       }
+  conn <- asks rsConnection
+  ud <- userDetailsSelect auid conn
+  void $ insertNewJournalEntry
+    (JournalSubmit
+      ("User \"" <> userDetailsIdent ud <> "\" recharged " <>
+        T.pack (show (fromIntegral amount / 100 :: Double)))
+      amount
+      )
+    conn
+  void $ addToUserBalance auid amount conn
 userRecharge Nothing _ =
   throwError $ err401
     { errBody = "No Authentication present."
@@ -109,42 +107,32 @@ userTransfer
   :: Maybe (Int, AuthMethod)
   -> UserTransfer
   -> MateHandler ()
-userTransfer (Just (auid, method)) (UserTransfer target amount) =
-  if amount >= 0
-  then
-    if auid /= target
-    then
-      if method `elem` [PrimaryPass, ChallengeResponse]
-      then do
-        conn <- asks rsConnection
-        user <- userDetailsSelect auid conn
-        if amount < userDetailsBalance user
-        then do
-          mtarget <- filter (\u -> userSummaryId u == target) <$> userSelect AllUsers conn
-          if not (null mtarget)
-          then do
-            void $ addToUserBalance auid (-amount) conn
-            void $ addToUserBalance target amount conn
-          else
-            throwError $ err400
-              { errBody = "Target user not found."
-              }
-        else
-         throwError $ err400
-           { errBody = "Not enough credit balance."
-           }
-      else
-        throwError $ err400
-          { errBody = "You can not transfer yourself money."
-          }
-    else
-      throwError $ err401
-        { errBody = "No Authentication present."
-        }
-  else
+userTransfer (Just (auid, method)) (UserTransfer target amount) = do
+  when (amount < 0) $ do
     throwError $ err400
       { errBody = "Amounts less or equal zero are not acceptable."
       }
+  when (auid == target) $ do
+    throwError $ err400
+      { errBody = "You can not transfer yourself money."
+      }
+  when (method `notElem` [PrimaryPass, ChallengeResponse]) $ do
+    throwError $ err401
+      { errBody = "No Authentication present."
+      }
+  conn <- asks rsConnection
+  user <- userDetailsSelect auid conn
+  when (amount > userDetailsBalance user) $ do
+    throwError $ err400
+      { errBody = "Not enough credit balance."
+      }
+  mtarget <- filter (\u -> userSummaryId u == target) <$> userSelect AllUsers conn
+  when (null mtarget) $ do
+    throwError $ err400
+      { errBody = "Target user not found."
+      }
+  void $ addToUserBalance auid (-amount) conn
+  void $ addToUserBalance target amount conn
 userTransfer Nothing _ =
   throwError $ err401
     { errBody = "No Authentication present."

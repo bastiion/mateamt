@@ -103,7 +103,11 @@ main = do
                   , rsSoftwareVersion = T.pack (showVersion version)
                   }
                 expirationSpec = TimeSpec 5 0 -- five seconds
-            th <- initCustomThrottler (defaultThrottleSettings expirationSpec)
+                throttleSettings = (defaultThrottleSettings expirationSpec)
+                  { throttleSettingsRate   = 10
+                  , throttleSettingsPeriod = 1000
+                  }
+            th <- initCustomThrottler throttleSettings
               (\req ->
                 let headers = requestHeaders req
                 in  case lookup "x-forwarded-for" headers of
