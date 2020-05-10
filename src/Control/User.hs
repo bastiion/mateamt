@@ -84,7 +84,7 @@ userRecharge
   -> UserRecharge
   -> MateHandler ()
 userRecharge (Just (auid, _)) (UserRecharge amount) = do
-  when (amount < 0) $ do
+  when (amount < 0) $
     throwError $ err400
       { errBody = "Amounts less or equal zero are not acceptable."
       }
@@ -108,26 +108,26 @@ userTransfer
   -> UserTransfer
   -> MateHandler ()
 userTransfer (Just (auid, method)) (UserTransfer target amount) = do
-  when (amount < 0) $ do
+  when (amount < 0) $
     throwError $ err400
       { errBody = "Amounts less or equal zero are not acceptable."
       }
-  when (auid == target) $ do
+  when (auid == target) $
     throwError $ err400
       { errBody = "You can not transfer yourself money."
       }
-  when (method `notElem` [PrimaryPass, ChallengeResponse]) $ do
+  when (method `notElem` [PrimaryPass, ChallengeResponse]) $
     throwError $ err401
       { errBody = "No Authentication present."
       }
   conn <- asks rsConnection
   user <- userDetailsSelect auid conn
-  when (amount > userDetailsBalance user) $ do
+  when (amount > userDetailsBalance user) $
     throwError $ err400
       { errBody = "Not enough credit balance."
       }
   mtarget <- filter (\u -> userSummaryId u == target) <$> userSelect AllUsers conn
-  when (null mtarget) $ do
+  when (null mtarget) $
     throwError $ err400
       { errBody = "Target user not found."
       }
