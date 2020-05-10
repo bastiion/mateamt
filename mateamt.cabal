@@ -34,6 +34,7 @@ executable mateamt
                      , mtl
                      , opaleye
                      , postgresql-simple
+                     , postgresql-simple-migration
                      , stm
                      , network
                      , servant
