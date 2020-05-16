@@ -91,6 +91,7 @@ main = do
           void $ execute_ conn initJournal
           void $ execute_ conn initRole
           void $ execute_ conn initUserToRole
+          runInsertInitialRole
           forkCleanProcess conn store
           withStdoutLogger $ \ilog -> do
             let settings = setPort (fromIntegral lport) $

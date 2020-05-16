@@ -100,3 +100,32 @@ userToRoleTable = table "user_to_role" (
     , tableField "role_id"
     )
   )
+
+insertInitialRole :: PGS.Connection -> MateHandler ()
+insertInitialRole conn =
+  liftIO $ runInsertInitalRole conn
+
+runInsertInitalRole :: PGS.Connection -> IO ()
+runInsertInitalRole conn =
+  runInsert_ conn $ Insert
+    { iTable = roleTable
+    , iRows =
+      [
+      ( C.constant (Nothing :: Maybe Int)
+      , C.constant "Administrator"
+      , C.constant True
+      , C.constant True
+      , C.constant True
+      , C.constant True
+      , C.constant True
+      , C.constant True
+      , C.constant True
+      , C.constant True
+      , C.constant True
+      , C.constant True
+      , C.constant True
+      )
+      ]
+    , iReturning = rReturning (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) -> id_)
+    , iOnConflict = Nothing
+    }
