@@ -34,8 +34,9 @@ instance FromYAML ServerConfig where
     -- <*> m .:? "max_connections_per_client" .!= 10
     <*> m .: "block_registration"
 
-newtype Options = Options
+data Options = Options
   { optConfigLocation :: T.Text
+  , optMigrationLocation :: T.Text
   }
   deriving (Show)
 
@@ -46,4 +47,12 @@ options = Options
     <> short 'c'
     <> metavar "FILEPATH"
     <> help "Location of the configuration YAML-file"
+    )
+  <*> strOption
+    ( long "migration-dir"
+    <> short 'm'
+    <> metavar "DIRPATH"
+    <> help "Location of the migration scripts folder"
+    <> value "./migration_scripts"
+    <> showDefault
     )

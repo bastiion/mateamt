@@ -40,6 +40,7 @@ import Control.Concurrent.STM.TVar
 import Options.Applicative
 
 import System.Clock (TimeSpec(..))
+import System.Exit
 
 -- internal imports
 
@@ -56,7 +57,7 @@ import Paths_mateamt (version)
 
 main :: IO ()
 main = do
-  (Options confLoc) <- execParser opts
+  (Options confLoc tMigLoc) <- execParser opts
   raw <- BL.readFile (T.unpack confLoc)
   case decode1 raw of
     Left (loc, msg) ->
@@ -101,8 +102,28 @@ main = do
                 execute_ conn initJournal
                 execute_ conn initRole
                 execute_ conn initUserToRole
-                runInsertInitialRole
-          -- TODO: check for Migrations
+                void $ runInsertInitialRole conn
+          -- validate Migrations
+          let migLoc = T.unpack tMigLoc
+          ok <- withTransaction conn $ runMigration $ MigrationContext
+            (MigrationValidation (MigrationDirectory migLoc)) True conn
+          case ok of
+            MigrationError err -> do
+              putStrLn ("Migration validation error: " ++ err)
+              putStrLn ("Running Migrations!")
+              void $ withTransaction conn $ runMigration $
+                MigrationContext (MigrationDirectory migLoc) True conn
+            MigrationSuccess -> return ()
+          ok2 <- withTransaction conn $ runMigration $ MigrationContext
+            (MigrationValidation (MigrationDirectory migLoc)) True conn
+          case ok2 of
+            MigrationError err -> do
+              putStrLn ("Migration validation error: " ++ err)
+              putStrLn ("MIgration failure! exiting...")
+              exitWith (ExitFailure 3)
+            MigrationSuccess -> do
+              putStrLn ("Migration validation success!")
+              putStrLn ("starting up...")
           forkCleanProcess conn store
           withStdoutLogger $ \ilog -> do
             let settings = setPort (fromIntegral lport) $

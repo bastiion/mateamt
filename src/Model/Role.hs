@@ -11,6 +11,12 @@ import Data.Profunctor.Product (p2, p13)
 import Opaleye as O hiding (null, not)
 import Opaleye.Constant as C
 
+import Control.Monad.IO.Class (liftIO)
+
+-- internal imports
+
+import Types
+
 initRole :: PGS.Query
 initRole = mconcat
   [ "CREATE TABLE IF NOT EXISTS \"role\" ("
@@ -101,18 +107,18 @@ userToRoleTable = table "user_to_role" (
     )
   )
 
-insertInitialRole :: PGS.Connection -> MateHandler ()
+insertInitialRole :: PGS.Connection -> MateHandler [Int]
 insertInitialRole conn =
-  liftIO $ runInsertInitalRole conn
+  liftIO $ runInsertInitialRole conn
 
-runInsertInitalRole :: PGS.Connection -> IO ()
-runInsertInitalRole conn =
+runInsertInitialRole :: PGS.Connection -> IO [Int]
+runInsertInitialRole conn =
   runInsert_ conn $ Insert
     { iTable = roleTable
     , iRows =
       [
       ( C.constant (Nothing :: Maybe Int)
-      , C.constant "Administrator"
+      , C.constant ("Administrator" :: String)
       , C.constant True
       , C.constant True
       , C.constant True
