@@ -89,6 +89,8 @@ main = do
           void $ execute_ conn initAuthData
           void $ execute_ conn initAmount
           void $ execute_ conn initJournal
+          void $ execute_ conn initRole
+          void $ execute_ conn initUserToRole
           forkCleanProcess conn store
           withStdoutLogger $ \ilog -> do
             let settings = setPort (fromIntegral lport) $

@@ -69,6 +69,7 @@ library
                      , Model.Amount
                      , Model.Journal
                      , Model.Avatar
+                     , Model.Role
                      , Types
                      , Types.Auth
                      , Types.Product
