@@ -21,7 +21,12 @@ roleList = do
   conn <- asks rsConnection
   selectAllRoles conn
 
-roleNew _ _ = notImplemented
+roleNew
+  :: Maybe (Int, AuthMethod)
+  -> RoleSubmit
+  -> MateHandler Int
+roleNew (Just (_, auth)) (RoleSubmit name c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11) =
+  insertRole name c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 =<< asks rsConnection
 
 roleUpdate _ _ = notImplemented
 

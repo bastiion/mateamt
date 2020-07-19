@@ -194,6 +194,46 @@ selectAllRoles conn = do
     rawRoles
 
 
+insertRole
+  :: T.Text
+  -> Bool
+  -> Bool
+  -> Bool
+  -> Bool
+  -> Bool
+  -> Bool
+  -> Bool
+  -> Bool
+  -> Bool
+  -> Bool
+  -> Bool
+  -> PGS.Connection
+  -> MateHandler Int
+insertRole name c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 conn = do
+  head <$> liftIO (runInsert_ conn $ Insert
+    { iTable = roleTable
+    , iRows =
+      [
+      ( C.constant (Nothing :: Maybe Int)
+      , C.constant name
+      , C.constant c1
+      , C.constant c2
+      , C.constant c3
+      , C.constant c4
+      , C.constant c5
+      , C.constant c6
+      , C.constant c7
+      , C.constant c8
+      , C.constant c9
+      , C.constant c10
+      , C.constant c11
+      )
+      ]
+    , iReturning = rReturning (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) -> id_ )
+    , iOnConflict = Nothing
+    })
+
+
 queryRoleIdByName
   :: T.Text
   -> PGS.Connection
