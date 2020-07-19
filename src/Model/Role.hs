@@ -35,6 +35,7 @@ initRole = mconcat
   , "role_can_manage_suppliers  BOOLEAN NOT NULL,"
   , "role_can_manage_settings   BOOLEAN NOT NULL,"
   , "PRIMARY KEY (role_id)"
+  , "UNIQUE (role_name)"
   , ")"
   ]
 
