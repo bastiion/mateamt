@@ -8,8 +8,12 @@ import qualified Database.PostgreSQL.Simple as PGS
 
 import Data.Profunctor.Product (p2, p13)
 
+import qualified Data.Text as T
+
 import Opaleye as O hiding (null, not)
 import Opaleye.Constant as C
+
+import Control.Arrow ((<<<))
 
 import Control.Monad
 import Control.Monad.IO.Class (liftIO)
@@ -167,7 +171,7 @@ selectAllRoles
 selectAllRoles conn = do
   rawRoles <- liftIO $ runSelect conn (
     queryTable roleTable
-    ) :: Matehandler
+    ) :: MateHandler
         [
           ( Int
           , T.Text
@@ -194,10 +198,10 @@ queryRoleIdByName
   :: T.Text
   -> PGS.Connection
   -> MateHandler Int
-queryRoleIdByName name con = do
+queryRoleIdByName name conn = do
   roles <- liftIO $ runSelect conn (
     keepWhen (\(_, rname, _, _, _, _, _, _, _, _, _, _, _) ->
-      C.constant name == rname) <<< queryTable roleTable
+      C.constant name .== rname) <<< queryTable roleTable
     ) :: MateHandler
         [
           ( Int
@@ -221,45 +225,56 @@ queryRoleIdByCapabilities
   :: (Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool)
   -> PGS.Connection
   -> MateHandler Int
-queryRoleIdByName caps con = do
-  roles <- liftIO $ runSelect conn (
-    keepWhen (\(_, _, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11) ->
-      C.constant caps == (c1, c2, c3, vc4, c5, c6, c7, c8, c9, c10, c11))
-        <<< queryTable roleTable
-    ) :: MateHandler
-        [
-          ( Int
-          , T.Text
-          , Bool
-          , Bool
-          , Bool
-          , Bool
-          , Bool
-          , Bool
-          , Bool
-          , Bool
-          , Bool
-          , Bool
-          , Bool
-          )
-        ]
-  return $ (\(rid, _, _, _, _, _, _, _, _, _, _, _, _) -> rid) (head roles)
+queryRoleIdByCapabilities (p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11) conn =
+  do
+    roles <- liftIO $ runSelect conn (
+      keepWhen (\(_, _, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11) ->
+        C.constant p1 .== c1 .&&
+        C.constant p2 .== c2 .&&
+        C.constant p3 .== c3 .&&
+        C.constant p4 .== c4 .&&
+        C.constant p5 .== c5 .&&
+        C.constant p6 .== c6 .&&
+        C.constant p7 .== c7 .&&
+        C.constant p8 .== c8 .&&
+        C.constant p9 .== c9 .&&
+        C.constant p10 .== c10 .&&
+        C.constant p11 .== c11
+        )
+          <<< queryTable roleTable
+      ) :: MateHandler
+          [
+            ( Int
+            , T.Text
+            , Bool
+            , Bool
+            , Bool
+            , Bool
+            , Bool
+            , Bool
+            , Bool
+            , Bool
+            , Bool
+            , Bool
+            , Bool
+            )
+          ]
+    return $ (\(rid, _, _, _, _, _, _, _, _, _, _, _, _) -> rid) (head roles)
 
 associateUserToRole
   :: Int             -- ^ User id
   -> Int             -- ^ Role id
   -> PGS.Connection
-  -> Matehandler Int -- ^ Resulting UserToRole id
-associateUserToRole uid rid conn = do
-  a <- runInsert_ conn $ Insert
+  -> MateHandler () -- ^ Resulting UserToRole id
+associateUserToRole uid rid conn =
+  head <$> liftIO (runInsert_ conn $ Insert
     { iTable = userToRoleTable
     , iRows =
       [
-      ( C.constant (Nothing :: Maybe Int)
-      , C.constant uid
+      ( C.constant uid
       , C.constant rid
       )
       ]
-    , iReturning = rReturning (\(id_, _, _) -> id_ )
+    , iReturning = rReturning (const ())
     , iOnConflict = Nothing
-    }
+    })

@@ -375,33 +375,13 @@ processAuthRequest (AuthRequest aticket hash) store conn = do
       liftIO $ threadDelay delayTime
       if now > ticketExpiry ticket
       then
-#if defined(DEVELOP)
-        do
-          mockticket <- Ticket <$>
-            pure aticket <*>
-            pure 1 <*>
-            liftIO getCurrentTime <*>
-            pure (PrimaryPass, Nothing)
-          generateToken mockticket hash conn
-#else
         return Denied
-#endif
       else
         -- liftIO $ putStrLn "...and it is valid"
         generateToken ticket hash conn
     _        -> do
       liftIO $ threadDelay delayTime
-#if defined(DEVELOP)
-      do
-        mockticket <- Ticket <$>
-          pure aticket <*>
-          pure 1 <*>
-          liftIO getCurrentTime <*>
-          pure (PrimaryPass, Nothing)
-        generateToken mockticket hash conn
-#else
       return Denied
-#endif
 
 processLogout
   :: Int

@@ -21,18 +21,19 @@ roleList = do
   conn <- asks rsConnection
   selectAllRoles conn
 
-roleNew = notImpelemented
+roleNew _ _ = notImplemented
 
-roleUpdate = notImpelemented
+roleUpdate _ _ = notImplemented
 
-roleDelete = notImpelemented
+roleDelete _ _ = notImplemented
 
-roleAssociationList = notImpelemented
+roleAssociationList = notImplemented
 
-roleAssociationSubmit = notImpelemented
+roleAssociationSubmit _ _ = notImplemented
 
-roleAssociationDelete = notImpelemented
+roleAssociationDelete _ _ = notImplemented
 
+notImplemented :: MateHandler a
 notImplemented = throwError $ err501
   { errBody = "Function has not yet been implemented!"
   }

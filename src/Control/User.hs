@@ -19,6 +19,7 @@ import qualified Data.Text as T
 
 import Types
 import Model
+import Control.Role
 
 userNew
   :: UserSubmit
@@ -30,7 +31,8 @@ userNew (UserSubmit ident email passhash) = do
   void $ putUserAuthInfo uid PrimaryPass "Initial password" passhash conn
   baseRoleId <- queryRoleIdByCapabilities
     (False, False, False, False, False, False, False, False, False, False, False)
-  void $ assiciateuserToRole uid baseRoleId
+    conn
+  void $ associateUserToRole uid baseRoleId conn
   return uid
 
 userGet
