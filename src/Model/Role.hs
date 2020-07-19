@@ -160,3 +160,73 @@ runInsertInitialRoles conn = do
     , iOnConflict = Nothing
     }
   return $ a ++ b
+
+queryRoleIdByName
+  :: T.Text
+  -> PGS.Connection
+  -> MateHandler Int
+queryRoleIdByName name con = do
+  roles <- liftIO $ runSelect conn (
+    keepWhen (\(_, rname, _, _, _, _, _, _, _, _, _, _, _) ->
+      C.constant name == rname) <<< queryTable roleTable
+    ) :: MateHandler
+        ( Int
+        , T.Text
+        , Bool
+        , Bool
+        , Bool
+        , Bool
+        , Bool
+        , Bool
+        , Bool
+        , Bool
+        , Bool
+        , Bool
+        , Bool
+        )
+  return $ (\(rid, _, _, _, _, _, _, _, _, _, _, _, _) -> rid) (head roles)
+
+queryRoleIdByCapabilities
+  :: (Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool)
+  -> PGS.Connection
+  -> MateHandler Int
+queryRoleIdByName caps con = do
+  roles <- liftIO $ runSelect conn (
+    keepWhen (\(_, _, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11) ->
+      C.constant caps == (c1, c2, c3, vc4, c5, c6, c7, c8, c9, c10, c11))
+        <<< queryTable roleTable
+    ) :: MateHandler
+        ( Int
+        , T.Text
+        , Bool
+        , Bool
+        , Bool
+        , Bool
+        , Bool
+        , Bool
+        , Bool
+        , Bool
+        , Bool
+        , Bool
+        , Bool
+        )
+  return $ (\(rid, _, _, _, _, _, _, _, _, _, _, _, _) -> rid) (head roles)
+
+associateUserToRole
+  :: Int             -- ^ User id
+  :: Int             -- ^ Role id
+  :: PGS.Connection
+  :: Matehandler Int -- ^ Resulting UserToRole id
+associateUserToRole uid rid conn =
+  a <- runInsert_ conn $ Insert
+    { iTable = userToRoleTable
+    , iRows =
+      [
+      ( C.constant (Nothing :: Maybe Int)
+      , C.constant uid
+      , C.constant rid
+      )
+      ]
+    , iReturning = rReturning (\(id_, _, _) -> id_ )
+    , iOnConflict = Nothing
+    }

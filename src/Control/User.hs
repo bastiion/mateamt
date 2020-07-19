@@ -28,6 +28,9 @@ userNew (UserSubmit ident email passhash) = do
   conn <- asks rsConnection
   uid <- insertUser ident email (utctDay now) conn
   void $ putUserAuthInfo uid PrimaryPass "Initial password" passhash conn
+  baseRoleId <- queryRoleIdByCapabilities
+    (False, False, False, False, False, False, False, False, False, False, False)
+  void $ assiciateuserToRole uid baseRoleId
   return uid
 
 userGet
