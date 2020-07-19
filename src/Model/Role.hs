@@ -250,7 +250,7 @@ associateUserToRole
   -> Int             -- ^ Role id
   -> PGS.Connection
   -> Matehandler Int -- ^ Resulting UserToRole id
-associateUserToRole uid rid conn =
+associateUserToRole uid rid conn = do
   a <- runInsert_ conn $ Insert
     { iTable = userToRoleTable
     , iRows =
