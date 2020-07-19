@@ -46,8 +46,8 @@ initRole = mconcat
 initUserToRole :: PGS.Query
 initUserToRole = mconcat
   [ "CREATE TABLE IF NOT EXISTS \"user_to_role\" ("
-  , "user_id    INTEGER NOT NULL,"
-  , "role_id    INTEGER NOT NULL,"
+  , "user_id    INTEGER NOT NULL REFERENCES \"user\"(\"user_id\"),"
+  , "role_id    INTEGER NOT NULL REFERENCES \"role\"(\"role_id\"),"
   , "PRIMARY KEY (user_id, role_id)"
   , ")"
   ]
@@ -260,6 +260,24 @@ queryRoleIdByCapabilities (p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11) conn =
             )
           ]
     return $ (\(rid, _, _, _, _, _, _, _, _, _, _, _, _) -> rid) (head roles)
+
+
+selectAllRoleAssociations
+  :: PGS.Connection
+  -> MateHandler [RoleAssociation]
+selectAllRoleAssociations conn = do
+  rawRoleAssocs <- liftIO $ runSelect conn (
+    queryTable userToRoleTable
+    ) :: MateHandler
+        [
+          ( Int
+          , Int
+          )
+        ]
+  return $ map
+    (\(uid, rid) -> RoleAssociation uid rid)
+    rawRoleAssocs
+
 
 associateUserToRole
   :: Int             -- ^ User id

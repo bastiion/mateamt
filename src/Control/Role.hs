@@ -27,7 +27,10 @@ roleUpdate _ _ = notImplemented
 
 roleDelete _ _ = notImplemented
 
-roleAssociationList = notImplemented
+roleAssociationList
+  :: MateHandler [RoleAssociation]
+roleAssociationList =
+  selectAllRoleAssociations =<< asks rsConnection
 
 roleAssociationSubmit _ _ = notImplemented
 

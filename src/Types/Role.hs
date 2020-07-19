@@ -50,8 +50,7 @@ instance ToJSON RoleSubmit where
 instance FromJSON RoleSubmit
 
 data RoleAssociation = RoleAssociation
-  { roleAssociationId   :: Int
-  , roleAssociationUser :: Int
+  { roleAssociationUser :: Int
   , roleAssociationRole :: Int
   }
   deriving (Generic, Show)
