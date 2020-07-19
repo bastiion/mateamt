@@ -63,6 +63,7 @@ library
                      , Control.Auth
                      , Control.Avatar
                      , Control.Meta
+                     , Control.Role
                      , Model
                      , Model.User
                      , Model.Product
@@ -82,6 +83,7 @@ library
                      , Types.Journal
                      , Types.Avatar
                      , Types.Meta
+                     , Types.Role
                      , Util
   -- other-extensions:
   build-depends:       base >=4.12.0.0 && < 5
