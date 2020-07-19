@@ -247,9 +247,9 @@ queryRoleIdByName caps con = do
 
 associateUserToRole
   :: Int             -- ^ User id
-  :: Int             -- ^ Role id
-  :: PGS.Connection
-  :: Matehandler Int -- ^ Resulting UserToRole id
+  -> Int             -- ^ Role id
+  -> PGS.Connection
+  -> Matehandler Int -- ^ Resulting UserToRole id
 associateUserToRole uid rid conn =
   a <- runInsert_ conn $ Insert
     { iTable = userToRoleTable
