@@ -102,7 +102,7 @@ main = do
                 execute_ conn initJournal
                 execute_ conn initRole
                 execute_ conn initUserToRole
-                void $ runInsertInitialRole conn
+                void $ runInsertInitialRoles conn
           -- validate Migrations
           let migLoc = T.unpack tMigLoc
           ok <- withTransaction conn $ runMigration $ MigrationContext

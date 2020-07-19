@@ -11,6 +11,7 @@ import Data.Profunctor.Product (p2, p13)
 import Opaleye as O hiding (null, not)
 import Opaleye.Constant as C
 
+import Control.Monad
 import Control.Monad.IO.Class (liftIO)
 
 -- internal imports
@@ -107,13 +108,13 @@ userToRoleTable = table "user_to_role" (
     )
   )
 
-insertInitialRole :: PGS.Connection -> MateHandler [Int]
-insertInitialRole conn =
-  liftIO $ runInsertInitialRole conn
+insertInitialRoles :: PGS.Connection -> MateHandler ()
+insertInitialRoles conn =
+  void $ liftIO $ runInsertInitialRoles conn
 
-runInsertInitialRole :: PGS.Connection -> IO [Int]
-runInsertInitialRole conn =
-  runInsert_ conn $ Insert
+runInsertInitialRoles :: PGS.Connection -> IO [Int]
+runInsertInitialRoles conn = do
+  a <- runInsert_ conn $ Insert
     { iTable = roleTable
     , iRows =
       [
@@ -132,6 +133,29 @@ runInsertInitialRole conn =
       , C.constant True
       )
       ]
-    , iReturning = rReturning (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) -> id_)
+    , iReturning = rReturning (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) -> id_ )
     , iOnConflict = Nothing
     }
+  b <- runInsert_ conn $ Insert
+    { iTable = roleTable
+    , iRows =
+      [
+      ( C.constant (Nothing :: Maybe Int)
+      , C.constant ("User" :: String)
+      , C.constant False
+      , C.constant False
+      , C.constant False
+      , C.constant False
+      , C.constant False
+      , C.constant False
+      , C.constant False
+      , C.constant False
+      , C.constant False
+      , C.constant False
+      , C.constant False
+      )
+      ]
+    , iReturning = rReturning (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) -> id_ )
+    , iOnConflict = Nothing
+    }
+  return $ a ++ b
