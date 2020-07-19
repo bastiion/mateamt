@@ -17,3 +17,29 @@ data Role = Role
   , roleCanManageSuppliers :: Bool
   , roleCanManageSettings  :: Bool
   }
+
+data RoleSubmit = RoleSubmit
+  { roleSubmitName               :: T.Text
+  , roleSubmitCanRefillStock     :: Bool
+  , roleSubmitCanAddProduct      :: Bool
+  , roleSubmitCanViewJournal     :: Bool
+  , roleSubmitCanPayInvoice      :: Bool
+  , roleSubmitCanPayOut          :: Bool
+  , roleSubmitCanManageProducts  :: Bool
+  , roleSubmitCanManageJournal   :: Bool
+  , roleSubmitCanManageUsers     :: Bool
+  , roleSubmitCanManageRoles     :: Bool
+  , roleSubmitCanManageSuppliers :: Bool
+  , roleSubmitCanManageSettings  :: Bool
+  }
+
+data RoleAssociation = RoleAssociation
+  { roleAssociationId   :: Int
+  , roleAssociationUser :: Int
+  , roleAssociationRole :: Int
+  }
+
+data RoleAssociationSubmit = RoleAssociationSubmit
+  { roleAssociationSubmitUser :: Int
+  , roleAssociationSubmitRole :: Int
+  }

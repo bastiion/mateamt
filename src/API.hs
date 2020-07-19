@@ -68,6 +68,23 @@ type MateAPI = "v1" :> (
     :> ReqBody '[JSON] AvatarData :> Patch '[JSON] ()
   :<|> "avatar" :> "list" :> Get '[JSON] [Avatar]
 
+  :<|> "role" :> "list"
+    :> Get '[JSON] [Role]
+  :<|> "role" :> AuthProtect "header-auth" :> ReqBody '[JSON] RoleSubmit
+    :> Post '[JSON] Int
+  :<|> "role" :> AuthProtect "header-auth" :> ReqBody '[JSON] Role
+    :> Patch '[JSON] ()
+  :<|> "role" :> AuthProtect "header-auth" :> ReqBody '[JSON] Int
+    :> Delete '[JSON] ()
+  :<|> "role" :> "assiciation" :> "list"
+    :> Get '[JSON] [RoleAssociation]
+  :<|> "role" :> "association" :> AuthProtect "header-auth"
+    :> ReqBody '[JSON] RoleAssociationSubmit
+    :> Post '[JSON] Int
+  :<|> "role" :> "association" :> AuthProtect "header-auth"
+    :> ReqBody '[JSON] Int
+    :> Delete '[JSON] ()
+
   :<|> "meta" :> Get '[JSON] MetaInformation
   )
 
@@ -104,6 +121,14 @@ avaterInsertLink :: Link
 avatarUpdateLink :: Int -> Link
 avatarListLink :: Link
 
+roleListLink :: Link
+roleNewLink :: Link
+roleUpdateLink :: Link
+roleDeleteLink :: Link
+roleAssociationListLink :: Link
+roleAssociationSubmitLink :: Link
+roleAssociationDeleteLink :: Link
+
 metaGetLink :: Link
 
 ( authGetLink :<|>
@@ -137,6 +162,14 @@ metaGetLink :: Link
   avaterInsertLink :<|>
   avatarUpdateLink :<|>
   avatarListLink :<|>
+
+  roleListLink :<|>
+  roleNewLink :<|>
+  roleUpdateLink :<|>
+  roleDeleteLink :<|>
+  roleAssociationListLink :<|>
+  roleAssociationSubmitLink :<|>
+  roleAssociationDeleteLink :<|>
 
   metaGetLink
   ) = allLinks (Proxy :: Proxy MateAPI)

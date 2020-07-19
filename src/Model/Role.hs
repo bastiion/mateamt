@@ -161,6 +161,35 @@ runInsertInitialRoles conn = do
     }
   return $ a ++ b
 
+selectAllRoles
+  :: PGS.Connection
+  -> MateHandler [Role]
+selectAllRoles conn = do
+  rawRoles <- liftIO $ runSelect conn (
+    queryTable roleTable
+    ) :: Matehandler
+        [
+          ( Int
+          , T.Text
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          )
+        ]
+  return $ map
+    (\(id_, name, c1, c2, c3, c4, c5, c6, c7, c8, c9 ,c10, c11) ->
+      Role id_ name c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11)
+    rawRoles
+
+
 queryRoleIdByName
   :: T.Text
   -> PGS.Connection
@@ -170,20 +199,22 @@ queryRoleIdByName name con = do
     keepWhen (\(_, rname, _, _, _, _, _, _, _, _, _, _, _) ->
       C.constant name == rname) <<< queryTable roleTable
     ) :: MateHandler
-        ( Int
-        , T.Text
-        , Bool
-        , Bool
-        , Bool
-        , Bool
-        , Bool
-        , Bool
-        , Bool
-        , Bool
-        , Bool
-        , Bool
-        , Bool
-        )
+        [
+          ( Int
+          , T.Text
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          )
+        ]
   return $ (\(rid, _, _, _, _, _, _, _, _, _, _, _, _) -> rid) (head roles)
 
 queryRoleIdByCapabilities
@@ -196,20 +227,22 @@ queryRoleIdByName caps con = do
       C.constant caps == (c1, c2, c3, vc4, c5, c6, c7, c8, c9, c10, c11))
         <<< queryTable roleTable
     ) :: MateHandler
-        ( Int
-        , T.Text
-        , Bool
-        , Bool
-        , Bool
-        , Bool
-        , Bool
-        , Bool
-        , Bool
-        , Bool
-        , Bool
-        , Bool
-        , Bool
-        )
+        [
+          ( Int
+          , T.Text
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          )
+        ]
   return $ (\(rid, _, _, _, _, _, _, _, _, _, _, _, _) -> rid) (head roles)
 
 associateUserToRole

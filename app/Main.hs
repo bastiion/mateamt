@@ -207,6 +207,14 @@ app block_registration initState =
         avatarUpdate :<|>
         avatarList :<|>
 
+        roleList :<|>
+        roleNew :<|>
+        roleUpdate :<|>
+        roleDelete :<|>
+        roleAssociationList :<|>
+        roleAssociationSubmit :<|>
+        roleAssociationDelete :<|>
+
         metaGet
       )
 
