@@ -27,8 +27,21 @@ roleNew
   -> MateHandler Int
 roleNew (Just (_, auth)) (RoleSubmit name c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11) =
   insertRole name c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 =<< asks rsConnection
+roleNew Nothing _ ->
+  throwError $ err401
+    { errBody = "No Authentication present."
+    }
 
-roleUpdate _ _ = notImplemented
+roleUpdate
+  :: Maybe (Int, AuthMethod)
+  -> Role
+  -> MateHandler ()
+roleUpdate Just (_, auth) role =
+  updateRole role =<< asks rsConnection
+roleUpdate Nothing _ ->
+  throwError $ err401
+    { errBody = "No Authentication present."
+    }
 
 roleDelete _ _ = notImplemented
 

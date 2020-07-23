@@ -38,7 +38,7 @@ initRole = mconcat
   , "role_can_manage_roles      BOOLEAN NOT NULL,"
   , "role_can_manage_suppliers  BOOLEAN NOT NULL,"
   , "role_can_manage_settings   BOOLEAN NOT NULL,"
-  , "PRIMARY KEY (role_id)"
+  , "PRIMARY KEY (role_id),"
   , "UNIQUE (role_name)"
   , ")"
   ]
@@ -323,7 +323,7 @@ associateUserToRole
   :: Int             -- ^ User id
   -> Int             -- ^ Role id
   -> PGS.Connection
-  -> MateHandler () -- ^ Resulting UserToRole id
+  -> MateHandler ()
 associateUserToRole uid rid conn =
   head <$> liftIO (runInsert_ conn $ Insert
     { iTable = userToRoleTable
@@ -336,3 +336,32 @@ associateUserToRole uid rid conn =
     , iReturning = rReturning (const ())
     , iOnConflict = Nothing
     })
+
+
+updateRole
+  :: Role -- The role with already updated info
+  -> PGS.Connection
+  -> MateHandler ()
+updateRole role@(Role idnr name c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11) conn =
+  liftIO $ runUpdate_ conn $ Update
+    { uTable      = roleTable
+    , uUpadteWith = updateEasy (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) ->
+        ( id_
+        , C.constant name
+        , C.constant c1
+        , C.constant c2
+        , C.constant c3
+        , C.constant c4
+        , C.constant c5
+        , C.constant c6
+        , C.constant c7
+        , C.constant c8
+        , C.constant c9
+        , C.constant c10
+        , C.constant c11
+        )
+      )
+    , uWhere      = \(id_, _, _, _, _, _, _, _, _, _, _, _, _) .>
+      id_ .== C.constant idnr
+    , uReturning = rCount
+    }
