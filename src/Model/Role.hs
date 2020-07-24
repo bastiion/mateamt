@@ -10,6 +10,8 @@ import Data.Profunctor.Product (p2, p13)
 
 import qualified Data.Text as T
 
+import Data.Int (Int64)
+
 import Opaleye as O hiding (null, not)
 import Opaleye.Constant as C
 
@@ -194,6 +196,38 @@ selectAllRoles conn = do
     rawRoles
 
 
+selectRoleList
+  :: [Int]
+  -> PGS.Connection
+  -> MateHandler [Role]
+selectRoleList ids conn = do
+  rawRoles <- liftIO $ runSelect conn (
+    (keepWhen (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) ->
+      in_ (map C.constant ids) id_))
+      <<< queryTable roleTable
+    ) :: MateHandler
+        [
+          ( Int
+          , T.Text
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          , Bool
+          )
+        ]
+  return $ map
+    (\(id_, name, c1, c2, c3, c4, c5, c6, c7, c8, c9 ,c10, c11) ->
+      Role id_ name c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11)
+    rawRoles
+
+
 insertRole
   :: T.Text
   -> Bool
@@ -319,6 +353,23 @@ selectAllRoleAssociations conn = do
     rawRoleAssocs
 
 
+selectUserAssociations
+  :: Int
+  -> PGS.Connection
+  -> MateHandler [RoleAssociation]
+selectUserAssociations uid conn = do
+  rawAssocs <- liftIO $ runSelect conn(
+    keepWhen (\(auid, _) -> auid .== C.constant uid)
+      <<< queryTable userToRoleTable
+    ) :: MateHandler
+      [
+        ( Int
+        , Int
+        )
+      ]
+  return $ map (\(auid, arid) -> RoleAssociation auid arid) rawAssocs
+
+
 associateUserToRole
   :: Int             -- ^ User id
   -> Int             -- ^ Role id
@@ -339,13 +390,14 @@ associateUserToRole uid rid conn =
 
 
 updateRole
-  :: Role -- The role with already updated info
+  :: Int        -- ID of the updated role
+  -> RoleSubmit -- The role with already updated info
   -> PGS.Connection
-  -> MateHandler ()
-updateRole role@(Role idnr name c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11) conn =
+  -> MateHandler Int64
+updateRole rid role@(RoleSubmit name c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11) conn =
   liftIO $ runUpdate_ conn $ Update
     { uTable      = roleTable
-    , uUpadteWith = updateEasy (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) ->
+    , uUpdateWith = updateEasy (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) ->
         ( id_
         , C.constant name
         , C.constant c1
@@ -361,7 +413,7 @@ updateRole role@(Role idnr name c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11) conn =
         , C.constant c11
         )
       )
-    , uWhere      = \(id_, _, _, _, _, _, _, _, _, _, _, _, _) .>
-      id_ .== C.constant idnr
+    , uWhere      = \(id_, _, _, _, _, _, _, _, _, _, _, _, _) ->
+      id_ .== C.constant rid
     , uReturning = rCount
     }

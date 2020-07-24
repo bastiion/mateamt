@@ -72,7 +72,8 @@ type MateAPI = "v1" :> (
     :> Get '[JSON] [Role]
   :<|> "role" :> AuthProtect "header-auth" :> ReqBody '[JSON] RoleSubmit
     :> Post '[JSON] Int
-  :<|> "role" :> AuthProtect "header-auth" :> ReqBody '[JSON] Role
+  :<|> "role" :> AuthProtect "header-auth" :> Capture "rid" Int
+    :> ReqBody '[JSON] RoleSubmit
     :> Patch '[JSON] ()
   :<|> "role" :> AuthProtect "header-auth" :> ReqBody '[JSON] Int
     :> Delete '[JSON] ()
@@ -123,7 +124,7 @@ avatarListLink :: Link
 
 roleListLink :: Link
 roleNewLink :: Link
-roleUpdateLink :: Link
+roleUpdateLink :: Int -> Link
 roleDeleteLink :: Link
 roleAssociationListLink :: Link
 roleAssociationSubmitLink :: Link

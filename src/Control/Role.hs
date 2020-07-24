@@ -25,20 +25,36 @@ roleNew
   :: Maybe (Int, AuthMethod)
   -> RoleSubmit
   -> MateHandler Int
-roleNew (Just (_, auth)) (RoleSubmit name c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11) =
-  insertRole name c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 =<< asks rsConnection
-roleNew Nothing _ ->
+roleNew (Just (uid, auth)) (RoleSubmit name c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11) =
+  do
+    isRoleManager <- checkCapability uid roleCanManageRoles
+    if (auth `elem` [PrimaryPass, ChallengeResponse] && isRoleManager)
+    then
+      insertRole name c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 =<< asks rsConnection
+    else
+      throwError $ err401
+        { errBody = "You are not authorized for this action."
+        }
+roleNew Nothing _ =
   throwError $ err401
     { errBody = "No Authentication present."
     }
 
 roleUpdate
   :: Maybe (Int, AuthMethod)
-  -> Role
+  -> Int
+  -> RoleSubmit
   -> MateHandler ()
-roleUpdate Just (_, auth) role =
-  updateRole role =<< asks rsConnection
-roleUpdate Nothing _ ->
+roleUpdate (Just (uid, auth)) id_ roleSubmit = do
+  isRoleManager <- checkCapability uid roleCanManageRoles
+  if (auth `elem` [PrimaryPass, ChallengeResponse] && isRoleManager)
+  then
+    void $ updateRole id_ roleSubmit =<< asks rsConnection
+  else
+    throwError $ err401
+      { errBody = "You are not authorized for this action."
+      }
+roleUpdate Nothing _ _ =
   throwError $ err401
     { errBody = "No Authentication present."
     }
@@ -53,6 +69,19 @@ roleAssociationList =
 roleAssociationSubmit _ _ = notImplemented
 
 roleAssociationDelete _ _ = notImplemented
+
+-- | This is the internal function to check a users authorization to do certain
+-- actions
+checkCapability
+  :: Int              -- ^ User Id to check
+  -> (Role -> Bool)   -- ^ Predicate to check
+  -> MateHandler Bool -- ^ Result
+checkCapability uid accessRule = do
+  conn <- asks rsConnection
+  assocs <- selectUserAssociations uid conn
+  let rids = map roleAssociationRole assocs
+  roles <- selectRoleList rids conn
+  return $ any accessRule roles
 
 notImplemented :: MateHandler a
 notImplemented = throwError $ err501
