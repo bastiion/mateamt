@@ -10,13 +10,13 @@ data Role = Role
   { roleID                 :: Int
   , roleName               :: T.Text
   , roleCanRefillStock     :: Bool
-  , roleCanAddProduct      :: Bool
+  -- , roleCanAddProduct      :: Bool
   , roleCanViewJournal     :: Bool
   , roleCanPayInvoice      :: Bool
   , roleCanPayOut          :: Bool
   , roleCanManageProducts  :: Bool
   , roleCanManageJournal   :: Bool
-  , roleCanManageUsers     :: Bool
+  -- , roleCanManageUsers     :: Bool
   , roleCanManageRoles     :: Bool
   , roleCanManageSuppliers :: Bool
   , roleCanManageSettings  :: Bool
@@ -31,13 +31,13 @@ instance FromJSON Role
 data RoleSubmit = RoleSubmit
   { roleSubmitName               :: T.Text
   , roleSubmitCanRefillStock     :: Bool
-  , roleSubmitCanAddProduct      :: Bool
+  -- , roleSubmitCanAddProduct      :: Bool
   , roleSubmitCanViewJournal     :: Bool
   , roleSubmitCanPayInvoice      :: Bool
   , roleSubmitCanPayOut          :: Bool
   , roleSubmitCanManageProducts  :: Bool
   , roleSubmitCanManageJournal   :: Bool
-  , roleSubmitCanManageUsers     :: Bool
+  -- , roleSubmitCanManageUsers     :: Bool
   , roleSubmitCanManageRoles     :: Bool
   , roleSubmitCanManageSuppliers :: Bool
   , roleSubmitCanManageSettings  :: Bool

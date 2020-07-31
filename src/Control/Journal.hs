@@ -5,19 +5,24 @@ import Servant
 
 import Control.Monad (void)
 import Control.Monad.Reader (asks)
+import Control.Monad.Extra (anyM)
 
 -- internal imports
 
 import Types
 import Model.Journal
+import Control.Role (checkCapability)
 
 journalShow
   :: Maybe (Int, AuthMethod)
   -> Maybe Int
   -> Maybe Int
   -> MateHandler [JournalEntry]
-journalShow (Just (_, method)) mlimit moffset =
-  if method `elem` [PrimaryPass, ChallengeResponse]
+journalShow (Just (uid, method)) mlimit moffset = do
+  maySeeJournal <- anyM
+    (checkCapability uid)
+    [roleCanViewJournal, roleCanManageJournal]
+  if (method `elem` [PrimaryPass, ChallengeResponse] && maySeeJournal)
   then do
     conn <- asks rsConnection
     selectJournalEntries mlimit moffset conn
@@ -34,8 +39,9 @@ journalCheck
   :: Maybe (Int, AuthMethod)
   -> JournalCashCheck
   -> MateHandler ()
-journalCheck (Just (_, method)) check =
-  if method `elem` [PrimaryPass, ChallengeResponse]
+journalCheck (Just (uid, method)) check = do
+  mayCheckJournal <- checkCapability uid roleCanManageJournal
+  if (method `elem` [PrimaryPass, ChallengeResponse] && mayCheckJournal)
   then do
     conn <- asks rsConnection
     void $ insertNewCashCheck check conn

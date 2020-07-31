@@ -7,24 +7,36 @@ import Control.Monad (void)
 
 import Control.Monad.Reader (asks)
 
+import Control.Monad.Extra (anyM)
+
 import Data.Maybe (fromMaybe)
 
 -- internal imports
 
 import Types
 import Model
+import Control.Role (checkCapability)
 
 productNew
   :: Maybe (Int, AuthMethod)
   -> ProductSubmit
   -> MateHandler Int
-productNew (Just _) bevsub = do
-  conn <- asks rsConnection
-  bevid <- insertProduct bevsub conn
-  void $ insertNewEmptyAmount bevid bevsub conn
-  return bevid
+productNew (Just (uid, auth)) bevsub = do
+  mayAddProduct <- checkCapability uid roleCanManageProducts
+  if (auth `elem` [PrimaryPass, ChallengeResponse] && mayAddProduct)
+  then do
+    conn <- asks rsConnection
+    bevid <- insertProduct bevsub conn
+    void $ insertNewEmptyAmount bevid bevsub conn
+    return bevid
+  else
+    throwError $ err401
+      { errBody = "You are not authorized for this action."
+      }
 productNew Nothing _ =
-  throwError err401
+  throwError $ err401
+    { errBody = "No Authentication present."
+    }
 
 productOverview
   :: Int
@@ -37,29 +49,38 @@ productStockRefill
   :: Maybe (Int, AuthMethod)
   -> [AmountRefill]
   -> MateHandler ()
-productStockRefill (Just _) amorefs = do
-  conn <- asks rsConnection
-  prods <- mapM
-    (\refill -> productSelectSingle (amountRefillProductId refill) conn)
-    amorefs
-  if all (not . null) prods
-  then
-    if
-      all
-        (\refill ->
-          (>= 0) (amountRefillAmountSingles refill) &&
-          (>= 0) (amountRefillAmountCrates refill)
-          )
-        amorefs
-    then do
-      void $ manualProductAmountRefill amorefs conn
+productStockRefill (Just (uid, auth)) amorefs = do
+  mayRefill <- anyM
+    (checkCapability uid)
+    [ roleCanRefillStock, roleCanManageProducts ]
+  if (auth `elem` [PrimaryPass, ChallengeResponse] && mayRefill)
+  then do
+    conn <- asks rsConnection
+    prods <- mapM
+      (\refill -> productSelectSingle (amountRefillProductId refill) conn)
+      amorefs
+    if all (not . null) prods
+    then
+      if
+        all
+          (\refill ->
+            (>= 0) (amountRefillAmountSingles refill) &&
+            (>= 0) (amountRefillAmountCrates refill)
+            )
+          amorefs
+      then do
+        void $ manualProductAmountRefill amorefs conn
+      else
+        throwError $ err400
+          { errBody = "Amounts less than 0 are not acceptable."
+          }
     else
       throwError $ err400
-        { errBody = "Amounts less than 0 are not acceptable."
+        { errBody = "Non-existent Products are non-refillable."
         }
   else
-    throwError $ err400
-      { errBody = "Non-existent Products are non-refillable."
+    throwError $ err401
+      { errBody = "You are not authorized for this action."
       }
 productStockRefill Nothing _ =
   throwError $ err401
@@ -70,8 +91,9 @@ productStockUpdate
   :: Maybe (Int, AuthMethod)
   -> [AmountUpdate]
   -> MateHandler ()
-productStockUpdate (Just (_, method)) amoups =
-  if method `elem` [PrimaryPass, ChallengeResponse]
+productStockUpdate (Just (uid, method)) amoups = do
+  mayUpdateStock <- checkCapability uid roleCanManageProducts
+  if (method `elem` [PrimaryPass, ChallengeResponse] && mayUpdateStock)
   then
     if all ((>= 0) . amountUpdateRealAmount) amoups
     then do

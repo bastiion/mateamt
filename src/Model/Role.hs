@@ -6,7 +6,7 @@ module Model.Role where
 
 import qualified Database.PostgreSQL.Simple as PGS
 
-import Data.Profunctor.Product (p2, p13)
+import Data.Profunctor.Product (p2, p11)
 
 import qualified Data.Text as T
 
@@ -30,13 +30,13 @@ initRole = mconcat
   , "role_id                    SERIAL NOT NULL,"
   , "role_name                  TEXT NOT NULL,"
   , "role_can_refill_stock      BOOLEAN NOT NULL,"
-  , "role_can_add_product       BOOLEAN NOT NULL,"
+  -- , "role_can_add_product       BOOLEAN NOT NULL,"
   , "role_can_view_journal      BOOLEAN NOT NULL,"
   , "role_can_pay_invoice       BOOLEAN NOT NULL,"
   , "role_can_pay_out           BOOLEAN NOT NULL,"
   , "role_can_manage_products   BOOLEAN NOT NULL,"
   , "role_can_manage_journal    BOOLEAN NOT NULL,"
-  , "role_can_manage_users      BOOLEAN NOT NULL,"
+  -- , "role_can_manage_users      BOOLEAN NOT NULL,"
   , "role_can_manage_roles      BOOLEAN NOT NULL,"
   , "role_can_manage_suppliers  BOOLEAN NOT NULL,"
   , "role_can_manage_settings   BOOLEAN NOT NULL,"
@@ -58,13 +58,13 @@ roleTable :: Table
   ( Maybe (Field SqlInt4)
   , Field SqlText
   , Field SqlBool
+  -- , Field SqlBool
   , Field SqlBool
   , Field SqlBool
   , Field SqlBool
   , Field SqlBool
   , Field SqlBool
-  , Field SqlBool
-  , Field SqlBool
+  -- , Field SqlBool
   , Field SqlBool
   , Field SqlBool
   , Field SqlBool
@@ -72,29 +72,29 @@ roleTable :: Table
   ( Field SqlInt4
   , Field SqlText
   , Field SqlBool
+  -- , Field SqlBool
   , Field SqlBool
   , Field SqlBool
   , Field SqlBool
   , Field SqlBool
   , Field SqlBool
-  , Field SqlBool
-  , Field SqlBool
+  -- , Field SqlBool
   , Field SqlBool
   , Field SqlBool
   , Field SqlBool
   )
 roleTable = table "role" (
-  p13
+  p11
     ( tableField "role_id"
     , tableField "role_name"
     , tableField "role_can_refill_stock"
-    , tableField "role_can_add_product"
+    -- , tableField "role_can_add_product"
     , tableField "role_can_view_journal"
     , tableField "role_can_pay_invoice"
     , tableField "role_can_pay_out"
     , tableField "role_can_manage_products"
     , tableField "role_can_manage_journal"
-    , tableField "role_can_manage_users"
+    -- , tableField "role_can_manage_users"
     , tableField "role_can_manage_roles"
     , tableField "role_can_manage_suppliers"
     , tableField "role_can_manage_settings"
@@ -128,19 +128,19 @@ runInsertInitialRoles conn = do
       ( C.constant (Nothing :: Maybe Int)
       , C.constant ("Administrator" :: String)
       , C.constant True
+      -- , C.constant True
       , C.constant True
       , C.constant True
       , C.constant True
       , C.constant True
       , C.constant True
-      , C.constant True
-      , C.constant True
+      -- , C.constant True
       , C.constant True
       , C.constant True
       , C.constant True
       )
       ]
-    , iReturning = rReturning (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) -> id_ )
+    , iReturning = rReturning (\(id_, _, _, _, _, _, _, _, _, _, _) -> id_ )
     , iOnConflict = Nothing
     }
   b <- runInsert_ conn $ Insert
@@ -150,19 +150,19 @@ runInsertInitialRoles conn = do
       ( C.constant (Nothing :: Maybe Int)
       , C.constant ("User" :: String)
       , C.constant False
+      -- , C.constant False
       , C.constant False
       , C.constant False
       , C.constant False
       , C.constant False
       , C.constant False
-      , C.constant False
-      , C.constant False
+      -- , C.constant False
       , C.constant False
       , C.constant False
       , C.constant False
       )
       ]
-    , iReturning = rReturning (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) -> id_ )
+    , iReturning = rReturning (\(id_, _, _, _, _, _, _, _, _, _, _) -> id_ )
     , iOnConflict = Nothing
     }
   return $ a ++ b
@@ -178,21 +178,21 @@ selectAllRoles conn = do
           ( Int
           , T.Text
           , Bool
+          -- , Bool
           , Bool
           , Bool
           , Bool
           , Bool
           , Bool
-          , Bool
-          , Bool
+          -- , Bool
           , Bool
           , Bool
           , Bool
           )
         ]
   return $ map
-    (\(id_, name, c1, c2, c3, c4, c5, c6, c7, c8, c9 ,c10, c11) ->
-      Role id_ name c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11)
+    (\(id_, name, c1, c2, c3, c4, c5, c6, c7, c8, c9) ->
+      Role id_ name c1 c2 c3 c4 c5 c6 c7 c8 c9)
     rawRoles
 
 
@@ -202,7 +202,7 @@ selectRoleList
   -> MateHandler [Role]
 selectRoleList ids conn = do
   rawRoles <- liftIO $ runSelect conn (
-    (keepWhen (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) ->
+    (keepWhen (\(id_, _, _, _, _, _, _, _, _, _, _) ->
       in_ (map C.constant ids) id_))
       <<< queryTable roleTable
     ) :: MateHandler
@@ -210,40 +210,40 @@ selectRoleList ids conn = do
           ( Int
           , T.Text
           , Bool
+          -- , Bool
           , Bool
           , Bool
           , Bool
           , Bool
           , Bool
-          , Bool
-          , Bool
+          -- , Bool
           , Bool
           , Bool
           , Bool
           )
         ]
   return $ map
-    (\(id_, name, c1, c2, c3, c4, c5, c6, c7, c8, c9 ,c10, c11) ->
-      Role id_ name c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11)
+    (\(id_, name, c1, c2, c3, c4, c5, c6, c7, c8, c9) ->
+      Role id_ name c1 c2 c3 c4 c5 c6 c7 c8 c9)
     rawRoles
 
 
 insertRole
   :: T.Text
   -> Bool
+  -- -> Bool
   -> Bool
   -> Bool
   -> Bool
   -> Bool
   -> Bool
-  -> Bool
-  -> Bool
+  -- -> Bool
   -> Bool
   -> Bool
   -> Bool
   -> PGS.Connection
   -> MateHandler Int
-insertRole name c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 conn = do
+insertRole name c1 c2 c3 c4 c5 c6 c7 c8 c9 conn = do
   head <$> liftIO (runInsert_ conn $ Insert
     { iTable = roleTable
     , iRows =
@@ -259,11 +259,9 @@ insertRole name c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 conn = do
       , C.constant c7
       , C.constant c8
       , C.constant c9
-      , C.constant c10
-      , C.constant c11
       )
       ]
-    , iReturning = rReturning (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) -> id_ )
+    , iReturning = rReturning (\(id_, _, _, _, _, _, _, _, _, _, _) -> id_ )
     , iOnConflict = Nothing
     })
 
@@ -274,7 +272,7 @@ queryRoleIdByName
   -> MateHandler Int
 queryRoleIdByName name conn = do
   roles <- liftIO $ runSelect conn (
-    keepWhen (\(_, rname, _, _, _, _, _, _, _, _, _, _, _) ->
+    keepWhen (\(_, rname, _, _, _, _, _, _, _, _, _) ->
       C.constant name .== rname) <<< queryTable roleTable
     ) :: MateHandler
         [
@@ -289,20 +287,18 @@ queryRoleIdByName name conn = do
           , Bool
           , Bool
           , Bool
-          , Bool
-          , Bool
           )
         ]
-  return $ (\(rid, _, _, _, _, _, _, _, _, _, _, _, _) -> rid) (head roles)
+  return $ (\(rid, _, _, _, _, _, _, _, _, _, _) -> rid) (head roles)
 
 queryRoleIdByCapabilities
-  :: (Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool)
+  :: (Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool)
   -> PGS.Connection
   -> MateHandler Int
-queryRoleIdByCapabilities (p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11) conn =
+queryRoleIdByCapabilities (p1, p2, p3, p4, p5, p6, p7, p8, p9) conn =
   do
     roles <- liftIO $ runSelect conn (
-      keepWhen (\(_, _, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11) ->
+      keepWhen (\(_, _, c1, c2, c3, c4, c5, c6, c7, c8, c9) ->
         C.constant p1 .== c1 .&&
         C.constant p2 .== c2 .&&
         C.constant p3 .== c3 .&&
@@ -311,9 +307,7 @@ queryRoleIdByCapabilities (p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11) conn =
         C.constant p6 .== c6 .&&
         C.constant p7 .== c7 .&&
         C.constant p8 .== c8 .&&
-        C.constant p9 .== c9 .&&
-        C.constant p10 .== c10 .&&
-        C.constant p11 .== c11
+        C.constant p9 .== c9
         )
           <<< queryTable roleTable
       ) :: MateHandler
@@ -329,11 +323,9 @@ queryRoleIdByCapabilities (p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11) conn =
             , Bool
             , Bool
             , Bool
-            , Bool
-            , Bool
             )
           ]
-    return $ (\(rid, _, _, _, _, _, _, _, _, _, _, _, _) -> rid) (head roles)
+    return $ (\(rid, _, _, _, _, _, _, _, _, _, _) -> rid) (head roles)
 
 
 selectAllRoleAssociations
@@ -408,10 +400,10 @@ updateRole
   -> RoleSubmit -- The role with already updated info
   -> PGS.Connection
   -> MateHandler Int64
-updateRole rid role@(RoleSubmit name c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11) conn =
+updateRole rid role@(RoleSubmit name c1 c2 c3 c4 c5 c6 c7 c8 c9) conn =
   liftIO $ runUpdate_ conn $ Update
     { uTable      = roleTable
-    , uUpdateWith = updateEasy (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) ->
+    , uUpdateWith = updateEasy (\(id_, _, _, _, _, _, _, _, _, _, _) ->
         ( id_
         , C.constant name
         , C.constant c1
@@ -423,11 +415,9 @@ updateRole rid role@(RoleSubmit name c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11) conn =
         , C.constant c7
         , C.constant c8
         , C.constant c9
-        , C.constant c10
-        , C.constant c11
         )
       )
-    , uWhere      = \(id_, _, _, _, _, _, _, _, _, _, _, _, _) ->
+    , uWhere      = \(id_, _, _, _, _, _, _, _, _, _, _) ->
       id_ .== C.constant rid
     , uReturning = rCount
     }
@@ -440,6 +430,6 @@ deleteRole rid conn =
   liftIO $ runDelete_ conn $ Delete
     { dTable     = roleTable
     , dWhere     =
-      (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) -> id_ .== C.constant rid)
+      (\(id_, _, _, _, _, _, _, _, _, _, _) -> id_ .== C.constant rid)
     , dReturning = rCount
     }

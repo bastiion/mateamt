@@ -6,8 +6,8 @@ let
 
   f = { mkDerivation, aeson, base, base16-bytestring
       , base64-bytestring, bytestring, case-insensitive, clock
-      , containers, HsYAML, http-api-data, http-types, iproute, mtl
-      , network, opaleye, optparse-applicative, postgresql-simple
+      , containers, extra, HsYAML, http-api-data, http-types, iproute
+      , mtl, network, opaleye, optparse-applicative, postgresql-simple
       , postgresql-simple-migration, product-profunctors, profunctors
       , pureMD5, random-bytestring, servant, servant-rawm, servant-server
       , stdenv, stm, text, time, wai, wai-logger, wai-middleware-throttle
@@ -27,7 +27,7 @@ let
         ];
         executableHaskellDepends = [
           base base16-bytestring bytestring case-insensitive clock containers
-          HsYAML iproute mtl network opaleye optparse-applicative
+          extra HsYAML iproute mtl network opaleye optparse-applicative
           postgresql-simple postgresql-simple-migration servant
           servant-server stm text time wai wai-logger wai-middleware-throttle
           warp
