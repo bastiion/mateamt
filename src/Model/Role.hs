@@ -389,6 +389,20 @@ associateUserToRole uid rid conn =
     })
 
 
+deleteAssociation
+  :: Int             -- ^ User id
+  -> Int             -- ^ Role id
+  -> PGS.Connection
+  -> MateHandler Int64
+deleteAssociation uid rid conn =
+  liftIO $ runDelete_ conn $ Delete
+    { dTable     = userToRoleTable
+    , dWhere     =
+      (\(auid, arid) -> auid .== C.constant uid .&& arid .== C.constant rid)
+    , dReturning = rCount
+    }
+
+
 updateRole
   :: Int        -- ID of the updated role
   -> RoleSubmit -- The role with already updated info
@@ -416,4 +430,16 @@ updateRole rid role@(RoleSubmit name c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11) conn =
     , uWhere      = \(id_, _, _, _, _, _, _, _, _, _, _, _, _) ->
       id_ .== C.constant rid
     , uReturning = rCount
+    }
+
+deleteRole
+  :: Int
+  -> PGS.Connection
+  -> MateHandler Int64
+deleteRole rid conn =
+  liftIO $ runDelete_ conn $ Delete
+    { dTable     = roleTable
+    , dWhere     =
+      (\(id_, _, _, _, _, _, _, _, _, _, _, _, _) -> id_ .== C.constant rid)
+    , dReturning = rCount
     }

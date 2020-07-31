@@ -59,16 +59,64 @@ roleUpdate Nothing _ _ =
     { errBody = "No Authentication present."
     }
 
-roleDelete _ _ = notImplemented
+roleDelete
+  :: Maybe (Int, AuthMethod)
+  -> Int
+  -> MateHandler ()
+roleDelete (Just (uid, auth)) id_ = do
+  isRoleManager <- checkCapability uid roleCanManageRoles
+  if (auth `elem` [PrimaryPass, ChallengeResponse] && isRoleManager)
+  then
+    void $ deleteRole id_ =<< asks rsConnection
+  else
+    throwError $ err401
+      { errBody = "You are not authorized for this action."
+      }
+roleDelete Nothing _ =
+  throwError $ err401
+    { errBody = "No Authentication present."
+    }
 
 roleAssociationList
   :: MateHandler [RoleAssociation]
 roleAssociationList =
   selectAllRoleAssociations =<< asks rsConnection
 
-roleAssociationSubmit _ _ = notImplemented
+roleAssociationSubmit
+  :: Maybe (Int, AuthMethod)
+  -> RoleAssociationSubmit
+  -> MateHandler ()
+roleAssociationSubmit (Just (uid, auth)) (RoleAssociationSubmit auid arid) = do
+  isRoleManager <- checkCapability uid roleCanManageRoles
+  if (auth `elem` [PrimaryPass, ChallengeResponse] && isRoleManager)
+  then
+    associateUserToRole auid arid =<< asks rsConnection
+  else
+    throwError $ err401
+      { errBody = "You are not authorized for this action."
+      }
+roleAssociationSubmit Nothing _ =
+  throwError $ err401
+    { errBody = "No Authentication present."
+    }
 
-roleAssociationDelete _ _ = notImplemented
+roleAssociationDelete
+  :: Maybe (Int, AuthMethod)
+  -> RoleAssociation
+  -> MateHandler ()
+roleAssociationDelete (Just (uid, auth)) (RoleAssociation auid arid) = do
+  isRoleManager <- checkCapability uid roleCanManageRoles
+  if (auth `elem` [PrimaryPass, ChallengeResponse] && isRoleManager)
+  then
+    void $ deleteAssociation auid arid =<< asks rsConnection
+  else
+    throwError $ err401
+      { errBody = "You are not authorized for this action."
+      }
+roleAssociationDelete Nothing _ =
+  throwError $ err401
+    { errBody = "No Authentication present."
+    }
 
 -- | This is the internal function to check a users authorization to do certain
 -- actions

@@ -81,9 +81,9 @@ type MateAPI = "v1" :> (
     :> Get '[JSON] [RoleAssociation]
   :<|> "role" :> "association" :> AuthProtect "header-auth"
     :> ReqBody '[JSON] RoleAssociationSubmit
-    :> Post '[JSON] Int
+    :> Post '[JSON] ()
   :<|> "role" :> "association" :> AuthProtect "header-auth"
-    :> ReqBody '[JSON] Int
+    :> ReqBody '[JSON] RoleAssociation
     :> Delete '[JSON] ()
 
   :<|> "meta" :> Get '[JSON] MetaInformation
