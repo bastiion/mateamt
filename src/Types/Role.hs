@@ -11,12 +11,14 @@ data Role = Role
   , roleName               :: T.Text
   , roleCanRefillStock     :: Bool
   -- , roleCanAddProduct      :: Bool
-  , roleCanViewJournal     :: Bool
+  -- , roleCanViewJournal     :: Bool
+  -- | paying invoice only adds to user funds
   , roleCanPayInvoice      :: Bool
+  -- | paying out actually removes money from the cashier
   , roleCanPayOut          :: Bool
   , roleCanManageProducts  :: Bool
   , roleCanManageJournal   :: Bool
-  -- , roleCanManageUsers     :: Bool
+  , roleCanManageUsers     :: Bool
   , roleCanManageRoles     :: Bool
   , roleCanManageSuppliers :: Bool
   , roleCanManageSettings  :: Bool
@@ -32,12 +34,12 @@ data RoleSubmit = RoleSubmit
   { roleSubmitName               :: T.Text
   , roleSubmitCanRefillStock     :: Bool
   -- , roleSubmitCanAddProduct      :: Bool
-  , roleSubmitCanViewJournal     :: Bool
+  -- , roleSubmitCanViewJournal     :: Bool
   , roleSubmitCanPayInvoice      :: Bool
   , roleSubmitCanPayOut          :: Bool
   , roleSubmitCanManageProducts  :: Bool
   , roleSubmitCanManageJournal   :: Bool
-  -- , roleSubmitCanManageUsers     :: Bool
+  , roleSubmitCanManageUsers     :: Bool
   , roleSubmitCanManageRoles     :: Bool
   , roleSubmitCanManageSuppliers :: Bool
   , roleSubmitCanManageSettings  :: Bool
