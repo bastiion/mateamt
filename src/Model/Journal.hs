@@ -3,7 +3,7 @@
 {-# LANGUAGE Arrows #-}
 module Model.Journal where
 
-import Data.Maybe (isJust, fromJust)
+import Data.Maybe
 
 import Data.Time (UTCTime)
 import Data.Time.Clock
@@ -74,9 +74,7 @@ selectJournalEntries mlimit moffset conn = liftIO $ do
   let lim = case mlimit of
         Just l  -> limit (l + 1)
         Nothing -> id
-      off = case moffset of
-        Just o  -> offset o
-        Nothing -> id
+      off = maybe id offset moffset
   entries <- runSelect conn
     ( proc () -> do
       ret <- lim $ off $ orderBy (desc (\(id_, _, _, _, _) -> id_))

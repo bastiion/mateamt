@@ -88,7 +88,7 @@ main = do
           store <- newTVarIO S.empty
           -- tracker <- newTVarIO M.empty
           migrationsExist <- existsTable conn "schema_migrations"
-          when (not migrationsExist) $ do
+          unless migrationsExist $ do
             withTransaction conn $
               void $ do
                 runMigration $
@@ -110,7 +110,7 @@ main = do
           case ok of
             MigrationError err -> do
               putStrLn ("Migration validation error: " ++ err)
-              putStrLn ("Running Migrations!")
+              putStrLn "Running Migrations!"
               void $ withTransaction conn $ runMigration $
                 MigrationContext (MigrationDirectory migLoc) True conn
             MigrationSuccess -> return ()
@@ -119,11 +119,11 @@ main = do
           case ok2 of
             MigrationError err -> do
               putStrLn ("Migration validation error: " ++ err)
-              putStrLn ("MIgration failure! exiting...")
+              putStrLn "MIgration failure! exiting..."
               exitWith (ExitFailure 3)
             MigrationSuccess -> do
-              putStrLn ("Migration validation success!")
-              putStrLn ("starting up...")
+              putStrLn "Migration validation success!"
+              putStrLn "starting up..."
           forkCleanProcess conn store
           withStdoutLogger $ \ilog -> do
             let settings = setPort (fromIntegral lport) $

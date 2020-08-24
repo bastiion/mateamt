@@ -28,7 +28,7 @@ roleNew
 roleNew (Just (uid, auth)) (RoleSubmit name c1 c2 c3 c4 c5 c6 c7 c8 c9) =
   do
     isRoleManager <- checkCapability uid roleCanManageRoles
-    if (auth `elem` [PrimaryPass, ChallengeResponse] && isRoleManager)
+    if auth `elem` [PrimaryPass, ChallengeResponse] && isRoleManager
     then
       insertRole name c1 c2 c3 c4 c5 c6 c7 c8 c9 =<< asks rsConnection
     else
@@ -47,7 +47,7 @@ roleUpdate
   -> MateHandler ()
 roleUpdate (Just (uid, auth)) id_ roleSubmit = do
   isRoleManager <- checkCapability uid roleCanManageRoles
-  if (auth `elem` [PrimaryPass, ChallengeResponse] && isRoleManager)
+  if auth `elem` [PrimaryPass, ChallengeResponse] && isRoleManager
   then
     void $ updateRole id_ roleSubmit =<< asks rsConnection
   else
@@ -65,7 +65,7 @@ roleDelete
   -> MateHandler ()
 roleDelete (Just (uid, auth)) id_ = do
   isRoleManager <- checkCapability uid roleCanManageRoles
-  if (auth `elem` [PrimaryPass, ChallengeResponse] && isRoleManager)
+  if auth `elem` [PrimaryPass, ChallengeResponse] && isRoleManager
   then
     void $ deleteRole id_ =<< asks rsConnection
   else
@@ -88,7 +88,7 @@ roleAssociationSubmit
   -> MateHandler ()
 roleAssociationSubmit (Just (uid, auth)) (RoleAssociationSubmit auid arid) = do
   isRoleManager <- checkCapability uid roleCanManageRoles
-  if (auth `elem` [PrimaryPass, ChallengeResponse] && isRoleManager)
+  if auth `elem` [PrimaryPass, ChallengeResponse] && isRoleManager
   then
     associateUserToRole auid arid =<< asks rsConnection
   else
@@ -106,7 +106,7 @@ roleAssociationDelete
   -> MateHandler ()
 roleAssociationDelete (Just (uid, auth)) (RoleAssociation auid arid) = do
   isRoleManager <- checkCapability uid roleCanManageRoles
-  if (auth `elem` [PrimaryPass, ChallengeResponse] && isRoleManager)
+  if auth `elem` [PrimaryPass, ChallengeResponse] && isRoleManager
   then
     void $ deleteAssociation auid arid =<< asks rsConnection
   else

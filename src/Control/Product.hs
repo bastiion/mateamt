@@ -23,7 +23,7 @@ productNew
   -> MateHandler Int
 productNew (Just (uid, auth)) bevsub = do
   mayAddProduct <- checkCapability uid roleCanManageProducts
-  if (auth `elem` [PrimaryPass, ChallengeResponse] && mayAddProduct)
+  if auth `elem` [PrimaryPass, ChallengeResponse] && mayAddProduct
   then do
     conn <- asks rsConnection
     bevid <- insertProduct bevsub conn
@@ -53,13 +53,13 @@ productStockRefill (Just (uid, auth)) amorefs = do
   mayRefill <- anyM
     (checkCapability uid)
     [ roleCanRefillStock, roleCanManageProducts ]
-  if (auth `elem` [PrimaryPass, ChallengeResponse] && mayRefill)
+  if auth `elem` [PrimaryPass, ChallengeResponse] && mayRefill
   then do
     conn <- asks rsConnection
     prods <- mapM
       (\refill -> productSelectSingle (amountRefillProductId refill) conn)
       amorefs
-    if all (not . null) prods
+    if not (any null prods)
     then
       if
         all
@@ -93,7 +93,7 @@ productStockUpdate
   -> MateHandler ()
 productStockUpdate (Just (uid, method)) amoups = do
   mayUpdateStock <- checkCapability uid roleCanManageProducts
-  if (method `elem` [PrimaryPass, ChallengeResponse] && mayUpdateStock)
+  if method `elem` [PrimaryPass, ChallengeResponse] && mayUpdateStock
   then
     if all ((>= 0) . amountUpdateRealAmount) amoups
     then do

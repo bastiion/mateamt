@@ -321,7 +321,7 @@ manualProductAmountRefill aups conn =
     (\(AmountRefill pid amountSingles amountCrates) -> do
       oldamount <- getLatestAmountByProductId pid conn
       oldprice <- getLatestPriceByProductId pid conn
-      perCrate <- (productAmountPerCrate . head) <$>
+      perCrate <- productAmountPerCrate . head <$>
         productSelectSingle pid conn
       head <$> liftIO (do
         now <- getCurrentTime

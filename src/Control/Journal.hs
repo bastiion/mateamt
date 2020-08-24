@@ -22,7 +22,7 @@ journalShow (Just (uid, method)) mlimit moffset = do
   maySeeJournal <- anyM
     (checkCapability uid)
     [roleCanViewJournal, roleCanManageJournal]
-  if (method `elem` [PrimaryPass, ChallengeResponse] && maySeeJournal)
+  if method `elem` [PrimaryPass, ChallengeResponse] && maySeeJournal
   then do
     conn <- asks rsConnection
     selectJournalEntries mlimit moffset conn
@@ -41,7 +41,7 @@ journalCheck
   -> MateHandler ()
 journalCheck (Just (uid, method)) check = do
   mayCheckJournal <- checkCapability uid roleCanManageJournal
-  if (method `elem` [PrimaryPass, ChallengeResponse] && mayCheckJournal)
+  if method `elem` [PrimaryPass, ChallengeResponse] && mayCheckJournal
   then do
     conn <- asks rsConnection
     void $ insertNewCashCheck check conn

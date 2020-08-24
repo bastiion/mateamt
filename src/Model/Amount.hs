@@ -113,7 +113,7 @@ getLatestAmountByProductId pid conn = do
         , Bool
         )
       ]
-  head <$> return ( map
+  return (head $ map
     (\(_, _, amount, _, _) -> amount)
     amounts
     )
@@ -135,7 +135,7 @@ getLatestTotalPrice (PurchaseDetail pid amount) conn = do
         , Bool
         )
       ]
-  (amount *) . head <$> return (map
+  return $ ((amount *) . head) (map
     (\(_, _, _, price, _) -> price)
     amounts
     )

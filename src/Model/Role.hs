@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE Arrows #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module Model.Role where
 
@@ -202,8 +201,8 @@ selectRoleList
   -> MateHandler [Role]
 selectRoleList ids conn = do
   rawRoles <- liftIO $ runSelect conn (
-    (keepWhen (\(id_, _, _, _, _, _, _, _, _, _, _) ->
-      in_ (map C.constant ids) id_))
+    keepWhen (\(id_, _, _, _, _, _, _, _, _, _, _) ->
+      in_ (map C.constant ids) id_)
       <<< queryTable roleTable
     ) :: MateHandler
         [
@@ -341,7 +340,7 @@ selectAllRoleAssociations conn = do
           )
         ]
   return $ map
-    (\(uid, rid) -> RoleAssociation uid rid)
+    (uncurry RoleAssociation)
     rawRoleAssocs
 
 
@@ -359,7 +358,7 @@ selectUserAssociations uid conn = do
         , Int
         )
       ]
-  return $ map (\(auid, arid) -> RoleAssociation auid arid) rawAssocs
+  return $ map (uncurry RoleAssociation) rawAssocs
 
 
 associateUserToRole
@@ -390,7 +389,7 @@ deleteAssociation uid rid conn =
   liftIO $ runDelete_ conn $ Delete
     { dTable     = userToRoleTable
     , dWhere     =
-      (\(auid, arid) -> auid .== C.constant uid .&& arid .== C.constant rid)
+      \(auid, arid) -> auid .== C.constant uid .&& arid .== C.constant rid
     , dReturning = rCount
     }
 
@@ -430,6 +429,6 @@ deleteRole rid conn =
   liftIO $ runDelete_ conn $ Delete
     { dTable     = roleTable
     , dWhere     =
-      (\(id_, _, _, _, _, _, _, _, _, _, _) -> id_ .== C.constant rid)
+      \(id_, _, _, _, _, _, _, _, _, _, _) -> id_ .== C.constant rid
     , dReturning = rCount
     }
