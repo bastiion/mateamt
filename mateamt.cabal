@@ -84,6 +84,9 @@ library
                      , Types.Avatar
                      , Types.Meta
                      , Types.Role
+                     , Classes
+                     , Classes.FromDatabase
+                     , Classes.ToDatabase
                      , Util
   -- other-extensions:
   build-depends:       base >=4.12.0.0 && < 5

@@ -10,6 +10,7 @@ import GHC.Generics
 data MetaInformation = MetaInformation
   { metaInfoVersion  :: T.Text
   , metaInfoCurrency :: T.Text
+  , metaInfoDecimals :: Int
   }
   deriving (Show, Generic)
 

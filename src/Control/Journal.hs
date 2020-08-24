@@ -19,10 +19,7 @@ journalShow
   -> Maybe Int
   -> MateHandler [JournalEntry]
 journalShow (Just (uid, method)) mlimit moffset = do
-  maySeeJournal <- anyM
-    (checkCapability uid)
-    [roleCanViewJournal, roleCanManageJournal]
-  if method `elem` [PrimaryPass, ChallengeResponse] && maySeeJournal
+  if method `elem` [PrimaryPass, ChallengeResponse]
   then do
     conn <- asks rsConnection
     selectJournalEntries mlimit moffset conn

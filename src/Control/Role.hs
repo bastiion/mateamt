@@ -25,12 +25,12 @@ roleNew
   :: Maybe (Int, AuthMethod)
   -> RoleSubmit
   -> MateHandler Int
-roleNew (Just (uid, auth)) (RoleSubmit name c1 c2 c3 c4 c5 c6 c7 c8 c9) =
+roleNew (Just (uid, auth)) (RoleSubmit name c1 c2 c3 c4 c5 c6 c7 c8 c9 c10) =
   do
     isRoleManager <- checkCapability uid roleCanManageRoles
     if auth `elem` [PrimaryPass, ChallengeResponse] && isRoleManager
     then
-      insertRole name c1 c2 c3 c4 c5 c6 c7 c8 c9 =<< asks rsConnection
+      insertRole name c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 =<< asks rsConnection
     else
       throwError $ err401
         { errBody = "You are not authorized for this action."
