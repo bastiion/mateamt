@@ -18,6 +18,7 @@ import Opaleye.Constant as C
 -- internal imports
 
 import Types
+import Classes
 
 initAmount :: PGS.Query
 initAmount = mconcat
@@ -82,40 +83,21 @@ getLatestPriceByProductId
   -> PGS.Connection
   -> MateHandler Int -- The price in cents
 getLatestPriceByProductId pid conn = do
-  amounts <- liftIO $ runSelect conn $
+  liftIO $ amountPrice . fromDatabase . head <$> runSelect conn (
     limit 1 $ orderBy (desc (\(_, ts, _, _, _) -> ts))
-      (keepWhen (\(id_, _, _, _, _) -> id_ .== C.constant pid) <<< queryTable amountTable)
-    :: MateHandler
-      [ ( Int
-        , UTCTime
-        , Int
-        , Int
-        , Bool
-        )
-      ]
-  head <$> mapM
-    (\(_, _, _, price, _) -> return price)
-    amounts
+      (keepWhen (\(id_, _, _, _, _) -> id_ .== C.constant pid)
+        <<< queryTable amountTable)
+    )
 
 getLatestAmountByProductId
   :: Int             -- The associated Product ID
   -> PGS.Connection
   -> MateHandler Int -- The amount
 getLatestAmountByProductId pid conn = do
-  amounts <- liftIO $ runSelect conn $
+  liftIO $ amountAmount . fromDatabase . head <$> runSelect conn (
     limit 1 $ orderBy (desc (\(_, ts, _, _, _) -> ts))
-      (keepWhen (\(id_, _, _, _, _) -> id_ .== C.constant pid) <<< queryTable amountTable)
-    :: MateHandler
-      [ ( Int
-        , UTCTime
-        , Int
-        , Int
-        , Bool
-        )
-      ]
-  return (head $ map
-    (\(_, _, amount, _, _) -> amount)
-    amounts
+      (keepWhen (\(id_, _, _, _, _) -> id_ .== C.constant pid)
+        <<< queryTable amountTable)
     )
 
 getLatestTotalPrice
@@ -123,41 +105,23 @@ getLatestTotalPrice
   -> PGS.Connection
   -> MateHandler Int -- The price in cents
 getLatestTotalPrice (PurchaseDetail pid amount) conn = do
-  amounts <- liftIO $ runSelect conn $
-    limit 1 $ orderBy (desc (\(_, ts, _, _, _) -> ts)) $
-      keepWhen (\(id_, _, _, _, _) -> id_ .== C.constant pid) <<<
-        queryTable amountTable
-    :: MateHandler
-      [ ( Int
-        , UTCTime
-        , Int
-        , Int
-        , Bool
-        )
-      ]
-  return $ ((amount *) . head) (map
-    (\(_, _, _, price, _) -> price)
-    amounts
-    )
+  liftIO $ (amount *) . amountPrice . fromDatabase . head <$>
+    runSelect conn (
+      limit 1 $ orderBy (desc (\(_, ts, _, _, _) -> ts)) $
+        keepWhen (\(id_, _, _, _, _) -> id_ .== C.constant pid) <<<
+          queryTable amountTable
+      )
 
 checkProductAvailability
   :: PurchaseDetail
   -> PGS.Connection
   -> MateHandler (Maybe Int) -- ^ Returns maybe missing amount
 checkProductAvailability (PurchaseDetail pid amount) conn = do
-  realamount <- (\(_, _, ramount, _, _) -> ramount) . head <$>
+  realamount <- amountAmount . fromDatabase . head <$>
     (liftIO $ runSelect conn $ limit 1 $
       orderBy (desc (\(_, ts, _, _, _) -> ts)) $
         keepWhen (\(id_, _, _, _, _) -> id_ .== C.constant pid) <<<
           queryTable amountTable
-      :: MateHandler
-        [ ( Int
-          , UTCTime
-          , Int
-          , Int
-          , Bool
-          )
-        ]
     )
   if realamount < amount
   then return (Just $ amount - realamount)
@@ -199,20 +163,21 @@ postBuyProductAmountUpdate
   -> MateHandler Int
 postBuyProductAmountUpdate (PurchaseDetail pid pdamount) conn = do
   now <- liftIO getCurrentTime
-  (amount, oldprice) <- (\(_, _, am, op, _) -> (am, op)) . head <$> (
-    liftIO $ runSelect conn $ limit 1 $
-      orderBy (desc (\(_, ts, _, _, _) -> ts)) $
-        keepWhen (\(id_, _, _, _, _) -> id_ .== C.constant pid) <<<
-          queryTable amountTable
-      :: MateHandler
-        [ ( Int
-          , UTCTime
-          , Int
-          , Int
-          , Bool
-          )
-        ]
-    )
+  (amount, oldprice) <-
+    (\am -> (amountAmount am, amountPrice am)) . fromDatabase . head <$> (
+      liftIO $ runSelect conn $ limit 1 $
+        orderBy (desc (\(_, ts, _, _, _) -> ts)) $
+          keepWhen (\(id_, _, _, _, _) -> id_ .== C.constant pid) <<<
+            queryTable amountTable
+        :: MateHandler
+          [ ( Int
+            , UTCTime
+            , Int
+            , Int
+            , Bool
+            )
+          ]
+      )
   liftIO $ head <$> runInsert_ conn (Insert
     { iTable = amountTable
     , iRows  =

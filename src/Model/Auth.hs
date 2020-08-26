@@ -39,6 +39,7 @@ import qualified Opaleye.Constant as C
 
 import Types.Auth
 import Types.Reader
+import Classes
 
 
 initToken :: PGS.Query
@@ -120,22 +121,12 @@ selectAuthOverviews
   -> PGS.Connection
   -> MateHandler [AuthOverview]
 selectAuthOverviews uid conn = do
-  authData <- liftIO $ runSelect conn (proc () -> do
+  liftIO $ map fromDatabase <$> runSelect conn (proc () -> do
     (adid, aduid, admethod, adcomment, _) <-
       queryTable authDataTable -< ()
     restrict -< aduid .== C.constant uid
     returnA -< (adid, adcomment, admethod)
-    ) :: MateHandler
-        [ ( Int
-          , T.Text
-          , Int
-          )
-        ]
-  return $ map
-    (\(adid, adcomment, admethod) ->
-      AuthOverview adid adcomment (toEnum admethod)
-      )
-    authData
+    )
 
 
 getUserAuthInfo
@@ -144,24 +135,16 @@ getUserAuthInfo
   -> PGS.Connection
   -> MateHandler AuthInfo
 getUserAuthInfo uid method conn = do
-  authdata <- map (\(aid, auid, amethod, acomment, apayload) ->
-    (aid, auid, amethod, acomment, decodeUtf8 $ B64.encode apayload)) <$>
-    liftIO (do
+  authdata <-
+    liftIO $ do
       void $ threadDelay delayTime
-      runSelect conn (proc () -> do
+      map fromDatabase <$> runSelect conn (proc () -> do
         (aid, auid, amethod, acomment, apayload) <-
           queryTable authDataTable -< ()
         restrict -<
           auid .== C.constant uid .&& amethod .== C.constant (fromEnum method)
         returnA -< (aid, auid, amethod, acomment, apayload)
-        ) :: IO
-            [ ( Int
-              , Int
-              , Int
-              , T.Text
-              , ByteString
-              )
-            ])
+        ) :: IO [AuthData]
   if null authdata
   then
     -- generate mock AuthInfo
@@ -215,21 +198,15 @@ validateToken
   -> PGS.Connection
   -> Handler (Maybe (Int, AuthMethod))
 validateToken header conn = do
-  tokens <- liftIO $ runSelect conn (
+  tokens <- liftIO $ map fromDatabase <$> runSelect conn (
     keepWhen (\(tstr, _, _, _) ->
       tstr .== C.constant (decodeUtf8 header)) <<< queryTable tokenTable
-    ) :: Handler
-        [ ( T.Text
-          , Int
-          , UTCTime
-          , Int
-          )
-        ]
+    )
   case tokens of
-    [(_, uid, stamp, method)] -> do
+    [(Token _ uid stamp method)] -> do
       now <- liftIO getCurrentTime
       if diffUTCTime stamp now > 0
-      then return $ Just (uid, toEnum method)
+      then return $ Just (uid, method)
       else do
         void $ deleteToken (decodeUtf8 header) conn
         liftIO $ threadDelay delayTime
@@ -249,22 +226,13 @@ generateToken
   -> PGS.Connection
   -> MateHandler AuthResult
 generateToken (Ticket _ tuid _ (method, _)) (AuthResponse response) conn = do
-  authData <- liftIO $ runSelect conn (
+  authData <- liftIO $ map fromDatabase <$> runSelect conn (
     keepWhen (\(_, auid, amethod, _, _) ->
       auid .== C.constant tuid .&& amethod .== C.constant (fromEnum method))
         <<< queryTable authDataTable
-    ) :: MateHandler
-        [ ( Int
-          , Int
-          , Int
-          , T.Text
-          , ByteString
-          )
-        ]
+    ) :: MateHandler [AuthData]
   let userPayloads = map
-        (\(_, _, _, _, payload) ->
-          decodeUtf8 payload
-          )
+        authDataPayload
         authData
       authResult = case method of
         PrimaryPass       -> validatePass response userPayloads

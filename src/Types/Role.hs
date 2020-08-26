@@ -5,6 +5,8 @@ module Types.Role where
 import qualified Data.Text as T
 import Data.Aeson
 
+import Data.Time (UTCTime)
+
 import GHC.Generics
 
 -- internal imports

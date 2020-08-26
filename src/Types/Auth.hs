@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeFamilies #-}
 module Types.Auth where
 
 import GHC.Generics
@@ -10,11 +11,17 @@ import qualified Data.Set as S
 
 import Data.Time.Clock (UTCTime)
 
+import Data.ByteString (ByteString)
+import qualified Data.ByteString.Base64 as B64
+
 import qualified Data.Text as T
+import Data.Text.Encoding
 
 import Control.Concurrent.STM.TVar (TVar)
 
 -- internal imports
+
+import Classes
 
 data TicketRequest = TicketRequest
   { ticketRequestUser   :: Int
@@ -38,6 +45,20 @@ instance ToJSON AuthInfo where
   toEncoding = genericToEncoding defaultOptions
 
 instance FromJSON AuthInfo
+
+-- instance ToDatabase AuthInfo where
+-- 
+--   type InTuple AuthInfo = (Maybe T.Text, T.Text)
+-- 
+--   toDatabase (AuthInfo mChallenge (AuthTicket ticket)) =
+--     (mChallenge, ticket)
+
+instance FromDatabase AuthInfo where
+
+  type OutTuple AuthInfo = (Maybe T.Text, T.Text)
+
+  fromDatabase (mChallenge, ticket) =
+    AuthInfo mChallenge (AuthTicket ticket)
 
 
 data AuthMethod
@@ -122,6 +143,20 @@ data Token = Token
   }
   deriving (Generic, Show)
 
+-- instance ToDatabase Token where
+-- 
+--   type InTuple Token = (T.Text, Int, UTCTime, Int)
+-- 
+--   toDatabase (Token string usr exp method) =
+--     (string, usr, exp, fromEnum method)
+
+instance FromDatabase Token where
+
+  type OutTuple Token = (T.Text, Int, UTCTime, Int)
+
+  fromDatabase (string, usr, exp, method) =
+    Token string usr exp (toEnum method)
+
 
 type TicketStore = TVar (S.Set Ticket)
 
@@ -147,6 +182,20 @@ data AuthData = AuthData
   }
   deriving (Show)
 
+-- instance ToDatabase AuthData where
+-- 
+--   type InTuple AuthData = (Int, Int, Int, T.Text, ByteString)
+-- 
+--   toDatabase (AuthData id_ usr method comm payload) =
+--     (id_, usr, fromEnum method, comm, (B64.decode $ encodeUtf8 payload))
+
+instance FromDatabase AuthData where
+
+  type OutTuple AuthData = (Int, Int, Int, T.Text, ByteString)
+
+  fromDatabase (id_, usr, method, comm, payload) =
+    AuthData id_ usr (toEnum method) comm (decodeUtf8 $ B64.encode payload)
+
 
 data AuthOverview = AuthOverview
   { authOverviewId      :: Int
@@ -159,3 +208,17 @@ instance ToJSON AuthOverview where
   toEncoding = genericToEncoding defaultOptions
 
 instance FromJSON AuthOverview
+
+-- instance ToDatabase AuthOverview where
+-- 
+--   type InTuple AuthOverview = (Int, T.Text, Int)
+-- 
+--   toDatabase (AuthOverview id_ comm method) =
+--     (id_, comm, fromEnum method)
+
+instance FromDatabase AuthOverview where
+
+  type OutTuple AuthOverview = (Int, T.Text, Int)
+
+  fromDatabase (id_, comm, method) =
+    AuthOverview id_ comm (toEnum method)

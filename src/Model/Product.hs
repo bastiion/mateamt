@@ -4,7 +4,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Model.Product where
 
-import Data.Text as T hiding (head, foldl)
+import Data.Text (Text)
+import qualified Data.Text as T hiding (head, foldl, map)
 import Data.Time (getCurrentTime)
 import Data.Time.Clock (UTCTime)
 import Data.Profunctor.Product (p9)
@@ -23,6 +24,7 @@ import Opaleye.Constant as C
 -- internal imports
 
 import Types
+import Classes
 import Model.Amount
 
 initProduct :: PGS.Query
@@ -80,25 +82,9 @@ productSelect
   :: PGS.Connection
   -> MateHandler [Product]
 productSelect conn = do
-  prods <- liftIO $ runSelect conn
+  liftIO $ map fromDatabase <$> runSelect conn
     ( keepWhen (\_ -> C.constant True) <<< queryTable productTable
-    ) :: MateHandler
-        [ ( Int
-          , T.Text
-          , Int
-          , Maybe Int
-          , Maybe Int
-          , Int
-          , Int
-          , Maybe Int
-          , Maybe T.Text
-          )
-        ]
-  mapM
-    (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) -> return $
-      Product i1 i2 i3 i4 i5 i6 i7 i8 i9
-      )
-    prods
+    )
 
 
 productSelectSingle

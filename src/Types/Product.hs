@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TypeFamilies #-}
 module Types.Product where
 
 import GHC.Generics
@@ -6,6 +7,10 @@ import GHC.Generics
 import Data.Aeson
 
 import qualified Data.Text as T
+
+-- internal imports
+
+import Classes
 
 data Product = Product
   { productId             :: Int
@@ -27,6 +32,22 @@ instance ToJSON Product where
   toEncoding = genericToEncoding defaultOptions
 
 instance FromJSON Product
+
+instance ToDatabase Product where
+
+  type InTuple Product =
+    (Int, T.Text, Int, Maybe Int, Maybe Int, Int, Int, Maybe Int, Maybe T.Text)
+
+  toDatabase (Product id_ ident ml maid msid maxa apc ppc artnr) =
+    (id_, ident, ml, maid, msid, maxa, apc, ppc, artnr)
+
+instance FromDatabase Product where
+
+  type OutTuple Product =
+    (Int, T.Text, Int, Maybe Int, Maybe Int, Int, Int, Maybe Int, Maybe T.Text)
+
+  fromDatabase (id_, ident, ml, maid, msid, maxa, apc, ppc, artnr) =
+    Product id_ ident ml maid msid maxa apc ppc artnr
 
 
 data ProductOverview = ProductOverview
