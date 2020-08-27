@@ -6,9 +6,12 @@ module Model.Product where
 
 import Data.Text (Text)
 import qualified Data.Text as T hiding (head, foldl, map)
+
 import Data.Time (getCurrentTime)
-import Data.Time.Clock (UTCTime)
+
 import Data.Profunctor.Product (p9)
+
+import Data.Maybe
 
 import Control.Monad.IO.Class (liftIO)
 
@@ -83,37 +86,23 @@ productSelect
   -> MateHandler [Product]
 productSelect conn = do
   liftIO $ map fromDatabase <$> runSelect conn
-    ( keepWhen (\_ -> C.constant True) <<< queryTable productTable
-    )
+    (queryTable productTable)
 
 
 productSelectSingle
   :: Int
   -> PGS.Connection
-  -> MateHandler [Product]
+  -> MateHandler (Maybe Product)
 productSelectSingle pid conn = do
-  prods <- liftIO $ runSelect conn
+  prods <- liftIO $ map fromDatabase <$> runSelect conn
     ( limit 1
       (keepWhen (
         \(id_, _, _, _, _, _, _, _, _) -> id_ .== C.constant pid
         ) <<< queryTable productTable)
-    ) :: MateHandler
-        [ ( Int
-          , T.Text
-          , Int
-          , Maybe Int
-          , Maybe Int
-          , Int
-          , Int
-          , Maybe Int
-          , Maybe T.Text
-          )
-        ]
-  mapM
-    (\(i1, i2, i3, i4, i5, i6, i7, i8, i9) -> return $
-      Product i1 i2 i3 i4 i5 i6 i7 i8 i9
-      )
-    prods
+    )
+  case prods of
+    p:_ -> return (Just p)
+    _    -> return Nothing
 
 
 productOverviewSelect
@@ -193,12 +182,13 @@ produceProductOverviews refine =
 queryAmounts
   :: PGS.Connection
   -> Int
-  -> IO [(Int, UTCTime, Int, Int, Bool)]
-queryAmounts conn pid = runSelect conn $ proc () -> do
+  -> IO [Amount]
+queryAmounts conn pid = map fromDatabase <$> runSelect conn (proc () -> do
   stuff@(a1, _, _, _, _) <- orderBy (desc (\(_, ts, _, _, _) -> ts))
     (queryTable amountTable) -< ()
   restrict -< C.constant pid .== a1
   returnA -< stuff
+  )
 
 generateProductOverview
   :: PGS.Connection
@@ -219,14 +209,14 @@ generateProductOverview conn (i1, i2, i3, i4, i5, i6, i7, i8, i9, a3, a4) = do
   amounts <- liftIO $ queryAmounts conn i1
   let ii5 = snd $
         foldl
-          (\(bef, van) (_, _, amo, _, ver) ->
+          (\(bef, van) (Amount _ _ amo _ ver) ->
             if ver
             then (amo, if amo < bef then van + (bef - amo) else van)
             else (amo, van)
             )
           (0, 0)
-          (Prelude.reverse amounts)
-      ii10 = snd $ foldl (\(bef, tot) (_, _, amo, _, ver) ->
+          (reverse amounts)
+      ii10 = snd $ foldl (\(bef, tot) (Amount _ _ amo _ ver) ->
         if ver
         then (amo, tot)
         else (amo, tot + Prelude.max 0 (bef - amo))
@@ -307,7 +297,7 @@ manualProductAmountRefill aups conn =
     (\(AmountRefill pid amountSingles amountCrates) -> do
       oldamount <- getLatestAmountByProductId pid conn
       oldprice <- getLatestPriceByProductId pid conn
-      perCrate <- productAmountPerCrate . head <$>
+      perCrate <- productAmountPerCrate . fromJust <$>
         productSelectSingle pid conn
       head <$> liftIO (do
         now <- getCurrentTime

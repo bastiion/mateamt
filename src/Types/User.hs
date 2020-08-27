@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TypeFamilies #-}
 module Types.User where
 
 import GHC.Generics
@@ -10,6 +11,8 @@ import Data.Aeson
 import qualified Data.Text as T
 
 -- internal imports
+
+import Classes
 
 data User
   = User
@@ -24,6 +27,20 @@ data User
     -- , userAlgo      :: Maybe Int
     }
   deriving (Generic, Show)
+
+instance ToDatabase User where
+
+  type InTuple User = (Int, T.Text, Int, Day, Maybe T.Text, Maybe Int)
+
+  toDatabase (User id_ ident bal ts email ava) =
+    (id_, ident, bal, ts, email, ava)
+
+instance FromDatabase User where
+
+  type OutTuple User = (Int, T.Text, Int, Day, Maybe T.Text, Maybe Int)
+
+  fromDatabase  (id_, ident, bal, ts, email, ava) =
+    (User id_ ident bal ts email ava)
 
 
 data UserSummary = UserSummary

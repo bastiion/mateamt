@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Model.User where
 
-import Data.Text as T hiding (head, foldl)
+import qualified Data.Text as T
 import Data.Time.Calendar
 import Data.Time.Clock
 
@@ -23,6 +23,7 @@ import qualified Opaleye.Constant as C
 import Types.User
 import Types.Refine
 import Types.Reader
+import Classes
 
 initUser :: PGS.Query
 initUser = mconcat
@@ -68,7 +69,7 @@ userSelect
   -> MateHandler [UserSummary]
 userSelect ref conn = do
   today <- utctDay <$> liftIO getCurrentTime
-  users <- liftIO $ runSelect conn (
+  users <- liftIO $ map fromDatabase <$> runSelect conn (
     orderBy (asc (\(_, ident, _, _, _, _) -> ident)) (
       keepWhen (\(_, _, _, ts, _, _) -> case ref of
         AllUsers ->
@@ -78,17 +79,9 @@ userSelect ref conn = do
         OldUsers ->
           ts .< C.constant (addDays (-30) today)
         ) <<< selectTable userTable)
-        ) :: MateHandler
-            [ ( Int
-              , Text
-              , Int
-              , Day
-              , Maybe Text
-              , Maybe Int
-              )
-            ]
+        ) :: MateHandler [User]
   mapM
-    (\(i1, i2, _, _, _, i6) -> return $
+    (\(User i1 i2 _ _ _ i6) -> return $
       UserSummary i1 i2 i6
       )
     users
@@ -98,21 +91,13 @@ userDetailsSelect
   -> PGS.Connection
   -> MateHandler UserDetails
 userDetailsSelect uid conn = do
-  users <- liftIO $ runSelect conn (
+  users <- liftIO $ map fromDatabase <$> runSelect conn (
       keepWhen (\(uuid, _, _, _, _, _) ->
         uuid .== C.constant uid
         ) <<< queryTable userTable
-      ) :: MateHandler
-          [ ( Int
-            , Text
-            , Int
-            , Day
-            , Maybe Text
-            , Maybe Int
-            )
-          ]
+      ) :: MateHandler [User]
   head <$> mapM
-    (\(i1, i2, i3, _, i5, i6) -> return $
+    (\(User i1 i2 i3 _ i5 i6) -> return $
       UserDetails i1 i2 i3 i5 i6
       )
     users
@@ -123,22 +108,11 @@ userBalanceSelect
   -> Int
   -> MateHandler Int
 userBalanceSelect conn uid = do
-  users <- liftIO $ runSelect conn (
+  liftIO $ userBalance . fromDatabase . head <$> runSelect conn (
       keepWhen (\(uuid, _, _, _, _, _) ->
         uuid .== C.constant uid
         ) <<< queryTable userTable
-      ) :: MateHandler
-          [ ( Int
-            , Text
-            , Int
-            , Day
-            , Maybe Text
-            , Maybe Int
-            )
-          ]
-  head <$> mapM
-    (\(_, _, i3, _, _, _) -> return i3)
-    users
+      )
 
 
 insertUser
