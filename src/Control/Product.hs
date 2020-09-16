@@ -7,9 +7,9 @@ import Control.Monad (void)
 
 import Control.Monad.Reader (asks)
 
-import Control.Monad.Extra (anyM)
+import Control.Monad.Extra (anyM, allM)
 
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, isJust)
 
 -- internal imports
 
@@ -56,10 +56,11 @@ productStockRefill (Just (uid, auth)) amorefs = do
   if auth `elem` [PrimaryPass, ChallengeResponse] && mayRefill
   then do
     conn <- asks rsConnection
-    prods <- mapM
-      (\refill -> productSelectSingle (amountRefillProductId refill) conn)
-      amorefs
-    if not (any null prods)
+    let prods = map
+          (\refill -> productSelectSingle (amountRefillProductId refill) conn)
+          amorefs
+    allProdsExist <- allM (fmap isJust) prods
+    if allProdsExist
     then
       if
         all
